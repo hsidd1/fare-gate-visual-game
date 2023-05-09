@@ -165,7 +165,11 @@ GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
 
 def trackbar_callback(x):
-    pass
+    # updates global offsets by trackbar value 
+    global slider_xoffset, slider_yoffset
+    slider_xoffset = cv2.getTrackbarPos('xoffset', 'Radar Visualization')
+    slider_yoffset = cv2.getTrackbarPos('yoffset', 'Radar Visualization')
+
 
 slider_xoffset = 0 # mm
 slider_yoffset = 0 # mm
@@ -208,6 +212,7 @@ while True:
     else:
         s2_pts_prev = s2_pts
     #print(s1_pts, s2_pts)
+
     # draw radar points, render static points as washed out color
     if len(s1_pts) >= 1:
         s1_stat.update([(coord['x'], coord['y']) for coord in s1_pts])
@@ -216,15 +221,16 @@ while True:
             y = int((-coord['y'] + offsety) * scale)   # y axis is flipped  
             # x = int(x * 0.5)
             # y = int(y * 0.5)
+            x += slider_xoffset
+            y += slider_yoffset 
             if (coord['x'], coord['y']) in s1_stat.get_static_points():
-                #pygame.draw.circle(sub_surface, washout(GREEN), (x, y), 4)
                 cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
             else:
                 cv2.circle(frame, (x,y), 4, GREEN, -1)
     if len(s2_pts) >= 1:
         s2_stat.update([(coord['x'], coord['y']) for coord in s2_pts])
         for coord in s2_pts:
-            x = int((coord['x'] + offsetx) * scale)   # 
+            x = int((coord['x'] + offsetx) * scale)   
             y = int((-coord['y'] + offsety) * scale)   # y axis is flipped  
             if (coord['x'], coord['y']) in s2_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
