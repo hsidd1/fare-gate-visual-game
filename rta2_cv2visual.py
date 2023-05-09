@@ -158,7 +158,8 @@ print(f'Height {height}, Width {width}')
 
 # ret, frame = cap.read()
 # print(f'Returned {ret} and frame of shape {frame.shape}')
-
+#xy_scale = 0.5
+wait_ms  = 100   # wait time between frames, in ms
 # BGR colours for drawing points on frame (OpenCV) 
 GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
@@ -166,11 +167,13 @@ while True:
     ret, frame = cap.read()
     if not ret:
         break
-    frame = cv2.resize(frame, (500, 500))
-    
+    #frame = cv2.resize(frame, (700, 500))
+    #frame = cv2.resize(frame, (width, height))
+    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
+
 
     # take points in current RADAR frame
-    t_end = t_rad + 100    # ending timestamp, in ms
+    t_end = t_rad + 33    # ending timestamp, in ms
     s1_pts = []
     s2_pts = []
     while len(radar_points) > 0:
@@ -200,6 +203,8 @@ while True:
         for coord in s1_pts:
             x = int((coord['x'] + offsetx) * scale)  
             y = int((-coord['y'] + offsety) * scale)   # y axis is flipped  
+            # x = int(x * 0.5)
+            # y = int(y * 0.5)
             if (coord['x'], coord['y']) in s1_stat.get_static_points():
                 #pygame.draw.circle(sub_surface, washout(GREEN), (x, y), 4)
                 cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
@@ -214,12 +219,11 @@ while True:
                 cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
             else:
                 cv2.circle(frame, (x,y), 4, YELLOW, -1)
-    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
     # after drawing points on frames, imshow the frames
     cv2.imshow('Radar Visualization', frame)
 
     # Key controls
-    key = cv2.waitKey(100) & 0xFF
+    key = cv2.waitKey(wait_ms) & 0xFF
     if key == ord('q'):
         break
     elif key == ord('p'):
