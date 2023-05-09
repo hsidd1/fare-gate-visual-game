@@ -63,10 +63,10 @@ with open('Control_test1.json') as json_file:
     data = json.load(json_file)
 
 # Print the data of dictionary
-print(data.keys())
-print(data['sensors'])
-print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print(data['walkwayConfig'])
+# print(data.keys())
+# print(data['sensors'])
+# print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+# print(data['walkwayConfig'])
 
 # process data
 radar_points = []
@@ -163,15 +163,26 @@ wait_ms  = 100   # wait time between frames, in ms
 # BGR colours for drawing points on frame (OpenCV) 
 GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
+
+def trackbar_callback(x):
+    pass
+
+slider_xoffset = 0 # mm
+slider_yoffset = 0 # mm
+
+cv2.namedWindow('Radar Visualization')
+cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 1000, trackbar_callback)
+cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 1000, trackbar_callback)
+
 while True:
     ret, frame = cap.read()
     if not ret:
         break
-    #frame = cv2.resize(frame, (700, 500))
     #frame = cv2.resize(frame, (width, height))
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
 
-
+    xslider_val = cv2.getTrackbarPos('xoffset', 'Radar Visualization')
+    yslider_val = cv2.getTrackbarPos('yoffset', 'Radar Visualization')
     # take points in current RADAR frame
     t_end = t_rad + 33    # ending timestamp, in ms
     s1_pts = []
