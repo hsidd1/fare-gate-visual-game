@@ -175,8 +175,8 @@ slider_xoffset = 0 # mm
 slider_yoffset = 0 # mm
 
 cv2.namedWindow('Radar Visualization')
-cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 1000, trackbar_callback)
-cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 1000, trackbar_callback)
+cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 200, trackbar_callback)
+cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 200, trackbar_callback)
 
 while True:
     ret, frame = cap.read()
@@ -218,11 +218,14 @@ while True:
         s1_stat.update([(coord['x'], coord['y']) for coord in s1_pts])
         for coord in s1_pts:
             x = int((coord['x'] + offsetx) * scale)  
-            y = int((-coord['y'] + offsety) * scale)   # y axis is flipped  
-            # x = int(x * 0.5)
-            # y = int(y * 0.5)
+            y = int((-coord['y'] + offsety) * scale)   # y axis is flipped 
+            # comment above for temporarily removing initial offset to work only with trackbar offset  
+            # x = int((coord['x'] + 0) * scale)  
+            # y = int((-coord['y'] + 0) * scale)   # y axis is flipped 
+
             x += slider_xoffset
             y += slider_yoffset 
+
             if (coord['x'], coord['y']) in s1_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
             else:
@@ -232,6 +235,11 @@ while True:
         for coord in s2_pts:
             x = int((coord['x'] + offsetx) * scale)   
             y = int((-coord['y'] + offsety) * scale)   # y axis is flipped  
+            # x = int((coord['x'] + 0) * scale)   
+            # y = int((-coord['y'] + 0) * scale)   # y axis is flipped
+            x += slider_xoffset
+            y += slider_yoffset
+
             if (coord['x'], coord['y']) in s2_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
             else:
