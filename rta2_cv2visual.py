@@ -155,7 +155,6 @@ print(f"Number of frames: {num_frames}")
 height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
 print(f'Height {height}, Width {width}')
-
 # ret, frame = cap.read()
 # print(f'Returned {ret} and frame of shape {frame.shape}')
 #xy_scale = 0.5
@@ -170,18 +169,39 @@ def trackbar_callback(x):
     slider_xoffset = cv2.getTrackbarPos('xoffset', 'Radar Visualization')
     slider_yoffset = cv2.getTrackbarPos('yoffset', 'Radar Visualization')
 
+def squeeze(x):
+    # updates global offsets by trackbar value 
+    global x_squeeze, y_squeeze
+    x_squeeze = cv2.getTrackbarPos('x_squeeze', 'Radar Visualization')
+    y_squeeze = cv2.getTrackbarPos('y_squeeze', 'Radar Visualization')
 
 slider_xoffset = 0 # mm
 slider_yoffset = 0 # mm
 
+x_squeeze = 0
+y_squeeze = 0
 cv2.namedWindow('Radar Visualization')
-cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 200, trackbar_callback)
-cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 200, trackbar_callback)
+cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 1000, trackbar_callback)
+cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 1000, trackbar_callback)
+
+cv2.createTrackbar('x_squeeze', 'Radar Visualization', x_squeeze, 1000, squeeze)
+cv2.createTrackbar('y_squeeze', 'Radar Visualization', y_squeeze, 1000, squeeze)
 
 while True:
+    # while round(rad_cam_offset) > 0:
+    #         # skip video frames
+    #         rad_cam_offset -= 1000/33
+    #         ret = False
+    #         # pause until condition is met:
+    #         #cv2.waitKey(-1)
+    # else:
+    #     ret, frame = cap.read()
     ret, frame = cap.read()
     if not ret:
         break
+    height, width = frame.shape[:2]
+    #print(f'FRAME Height {height}, Width {width}')
+    frame = cv2.resize(frame, (round(width)+0, round(height)+0))   # reduce frame size
     #frame = cv2.resize(frame, (width, height))
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
 
@@ -225,6 +245,8 @@ while True:
 
             x += slider_xoffset
             y += slider_yoffset 
+            x -= x_squeeze
+            y -= y_squeeze
 
             if (coord['x'], coord['y']) in s1_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
@@ -239,6 +261,8 @@ while True:
             # y = int((-coord['y'] + 0) * scale)   # y axis is flipped
             x += slider_xoffset
             y += slider_yoffset
+            x += x_squeeze
+            y += y_squeeze
 
             if (coord['x'], coord['y']) in s2_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
