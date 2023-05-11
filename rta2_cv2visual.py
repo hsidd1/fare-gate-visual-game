@@ -186,11 +186,11 @@ cv2.namedWindow('Radar Visualization')
 cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 1000, trackbar_callback)
 cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 1000, trackbar_callback)
 
-cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 1000, squeeze)
-cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 1000, squeeze)
+cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 120, squeeze)
+cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 270, squeeze)
 
 while True:
-    
+    '''
     while round(rad_cam_offset) > 0:
         curr_time = radar_points[0]['timestamp']
         i = 0
@@ -205,7 +205,7 @@ while True:
         t_rad = radar_points[0]['timestamp']   # radar's timestamp, in ms
 
     #print(f"{radar_points[0]['timestamp']=}, {rad_cam_offset=}")
-    
+    '''
     ret, frame = cap.read()
     if not ret:
         break
