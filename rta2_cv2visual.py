@@ -158,7 +158,7 @@ print(f'Height {height}, Width {width}')
 # ret, frame = cap.read()
 # print(f'Returned {ret} and frame of shape {frame.shape}')
 #xy_scale = 0.5
-wait_ms  = 100   # wait time between frames, in ms
+wait_ms  = 1000//30   # wait time between frames, in ms
 # BGR colours for drawing points on frame (OpenCV) 
 GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
@@ -172,30 +172,40 @@ def trackbar_callback(x):
 def squeeze(x):
     # updates global offsets by trackbar value 
     global x_squeeze, y_squeeze
-    x_squeeze = cv2.getTrackbarPos('x_squeeze', 'Radar Visualization')
-    y_squeeze = cv2.getTrackbarPos('y_squeeze', 'Radar Visualization')
+    x_squeeze = cv2.getTrackbarPos('x squeeze', 'Radar Visualization')
+    y_squeeze = cv2.getTrackbarPos('y squeeze', 'Radar Visualization')
 
-slider_xoffset = 0 # mm
-slider_yoffset = 0 # mm
+# y default values default to 0 regardless of initialization below 
+slider_xoffset = 90 # mm
+slider_yoffset = 5 # mm
 
-x_squeeze = 0
-y_squeeze = 0
+x_squeeze = 50
+y_squeeze = 100
+
 cv2.namedWindow('Radar Visualization')
 cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 1000, trackbar_callback)
 cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 1000, trackbar_callback)
 
-cv2.createTrackbar('x_squeeze', 'Radar Visualization', x_squeeze, 1000, squeeze)
-cv2.createTrackbar('y_squeeze', 'Radar Visualization', y_squeeze, 1000, squeeze)
+cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 1000, squeeze)
+cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 1000, squeeze)
 
 while True:
-    # while round(rad_cam_offset) > 0:
-    #         # skip video frames
-    #         rad_cam_offset -= 1000/33
-    #         ret = False
-    #         # pause until condition is met:
-    #         #cv2.waitKey(-1)
-    # else:
-    #     ret, frame = cap.read()
+    '''
+    while round(rad_cam_offset) > 0:
+        curr_time = radar_points[0]['timestamp']
+        i = 0
+    
+        while int(curr_time - radar_points[0]['timestamp']) < rad_cam_offset:
+           # print(f"{rad_cam_offset=}, {curr_time - radar_points[0]['timestamp']=}")
+            del radar_points[i]
+            curr_time = radar_points[i]['timestamp']
+            i += 1
+        
+        rad_cam_offset -= 1000/30
+        t_rad = radar_points[0]['timestamp']   # radar's timestamp, in ms
+
+    print(f"{radar_points[0]['timestamp']=}, {rad_cam_offset=}")
+    '''
     ret, frame = cap.read()
     if not ret:
         break
