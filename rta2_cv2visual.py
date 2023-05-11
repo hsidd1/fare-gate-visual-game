@@ -190,7 +190,7 @@ cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 1000, squeeze)
 cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 1000, squeeze)
 
 while True:
-    '''
+    
     while round(rad_cam_offset) > 0:
         curr_time = radar_points[0]['timestamp']
         i = 0
@@ -204,8 +204,8 @@ while True:
         rad_cam_offset -= 1000/30
         t_rad = radar_points[0]['timestamp']   # radar's timestamp, in ms
 
-    print(f"{radar_points[0]['timestamp']=}, {rad_cam_offset=}")
-    '''
+    #print(f"{radar_points[0]['timestamp']=}, {rad_cam_offset=}")
+    
     ret, frame = cap.read()
     if not ret:
         break
