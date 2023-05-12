@@ -157,6 +157,7 @@ def washout(color, factor=0.2):
 
 slider_xoffset = 120 # mm
 slider_yoffset = 115 # mm
+xy_trackbar_scale = 0.5 # scale factor for x and y
 
 #Trackbar configuration
 def x_trackbar_callback(x):
@@ -180,20 +181,16 @@ def scale_callback(x):
     global xy_trackbar_scale
     xy_trackbar_scale = cv2.getTrackbarPos('scale', 'Radar Visualization') / 100
 
-
 x_squeeze = 0
 y_squeeze = 0
-
-xy_trackbar_scale = 1
 
 cv2.namedWindow('Radar Visualization')
 cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 2000, x_trackbar_callback)
 cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 2000, y_trackbar_callback)
-
+# abandoned trackbars
 #cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 120, squeeze)
 #cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 270, squeeze)
-
-cv2.createTrackbar('scale', 'Radar Visualization', int(xy_trackbar_scale*100), 200, scale_callback)
+cv2.createTrackbar('scale', 'Radar Visualization', int(xy_trackbar_scale*100), 200, scale_callback) # *100 and /100 to account for floating point usuability to downscale
 
 # main loop
 while True:
@@ -208,18 +205,14 @@ while True:
             radar_points.pop(0) # remove points that are before the current frame - should update ts_start
         rad_cam_offset -= incr
         print(f"rad_cam_offset is now: {0 if rad_cam_offset < 1 else rad_cam_offset}")
-
+    t_rad = radar_points[0]['timestamp']   # update t_rad to the timestamp of the first point in the frame
     ret, frame = cap.read()
     if not ret:
         break
     height, width = frame.shape[:2]
-    #print(f'FRAME Height {height}, Width {width}')
-    frame = cv2.resize(frame, (round(width)+0, round(height)+0))   # reduce frame size
-    #frame = cv2.resize(frame, (width, height))
+    frame = cv2.resize(frame, (round(width), round(height)))   # reduce frame size
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
 
-    xslider_val = cv2.getTrackbarPos('xoffset', 'Radar Visualization')
-    yslider_val = cv2.getTrackbarPos('yoffset', 'Radar Visualization')
     # take points in current RADAR frame
     t_end = t_rad + 33    # ending timestamp, in ms
     s1_pts = []
@@ -252,17 +245,14 @@ while True:
         for coord in s1_pts:
             x = int((coord['x'] + offsetx) * scale)  
             y = int((-coord['y'] + offsety) * scale)   # y axis is flipped 
-            # comment above for temporarily removing initial offset to work only with trackbar offset  
-            # x = int((coord['x'] + 0) * scale)  
-            # y = int((-coord['y'] + 0) * scale)   # y axis is flipped 
-
+            
+            # xy modifications from trackbar controls
             x = int(x * xy_trackbar_scale)
             y = int(y * xy_trackbar_scale)
             x += slider_xoffset
             y += slider_yoffset 
             x -= x_squeeze
             y -= y_squeeze
-
             if (coord['x'], coord['y']) in s1_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
             else:
@@ -272,15 +262,13 @@ while True:
         for coord in s2_pts:
             x = int((coord['x'] + offsetx) * scale)   
             y = int((-coord['y'] + offsety) * scale)   # y axis is flipped  
-            # x = int((coord['x'] + 0) * scale)   
-            # y = int((-coord['y'] + 0) * scale)   # y axis is flipped
+            # xy modifications from trackbar controls
             x = int(x * xy_trackbar_scale)
             y = int(y * xy_trackbar_scale)
             x += slider_xoffset
             y += slider_yoffset
             x += x_squeeze
             y += y_squeeze
-
             if (coord['x'], coord['y']) in s2_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
             else:
@@ -290,9 +278,9 @@ while True:
 
     # Key controls
     key = cv2.waitKey(wait_ms) & 0xFF
-    if key == ord('q'):
+    if key == ord('q'): # quit program if 'q' is pressed 
         break
-    elif key == ord('p'):
+    elif key == ord('p'): # pause/unpause program if 'p' is pressed
         cv2.waitKey(0)
 
 cap.release()
