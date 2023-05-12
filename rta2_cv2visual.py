@@ -159,7 +159,7 @@ def main():
     scale = 0.5 
 
     # video frame buffer
-    frame_prev = None
+    #frame_prev = None
     cap = cv2.VideoCapture('Controlled_test.avi')
     num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print(f"Number of frames: {num_frames}")
@@ -176,12 +176,12 @@ def main():
     BLUE = (255, 0, 0)
 
 
-    # y default values default to 0 regardless of initialization below 
-    slider_xoffset = 90 # mm
-    slider_yoffset = 5 # mm
+    # y default values will default to 0 regardless of initialization below 
+    slider_xoffset = 0 # mm
+    slider_yoffset = 0 # mm
 
-    x_squeeze = 50
-    y_squeeze = 100
+    x_squeeze = 0
+    y_squeeze = 0
 
     xy_trackbar_scale = 1
 
