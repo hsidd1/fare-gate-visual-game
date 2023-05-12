@@ -113,49 +113,11 @@ print(radar_points[0:6])
                         # ------------------ VISUALIZATION ------------------ #
 from point_cloud import StatisPoints
 
-# timestamps
-t_rad = radar_points[0]['timestamp']   # radar's timestamp, in ms
-T_RAD_BEGIN = t_rad   # radar's starting timestamp, in ms
-TS_OFFSET = t_rad // 100000 * 100000   # trim off timestamp digits (first n digits) for display.
-
-# radar camera synchronization
-rad_cam_offset = 2300  # ms    # positive if radar is ahead of video
-rad_cam_offset = rad_cam_offset - rad_cam_offset % (100)  # make sure it's multiples of video frame interval
-print(f"Radar is set to be ahead of video by {rad_cam_offset}ms.")
-# t_vid = cap.get(cv2.CAP_PROP_POS_MSEC)   # video's timestamp, in ms
-
-# radar points buffer
-s1_pts = []
-s2_pts = []
-# static points
-s1_stat = StatisPoints(cnt_thres=5)
-s2_stat = StatisPoints(cnt_thres=5)
-# points in previous frame
-s1_pts_prev = []
-s2_pts_prev = []
-scale = 0.5 
-
-# video frame buffer
-frame_prev = None
-cap = cv2.VideoCapture('Controlled_test.avi')
-num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-print(f"Number of frames: {num_frames}")
-
-height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-print(f'Height {height}, Width {width}')
-
-wait_ms  = 1000//30   # wait time between frames, in ms
-
-# BGR colours for drawing points on frame (OpenCV) 
-GREEN = (0, 255, 0)
-YELLOW = (0, 255, 255)
-BLUE = (255, 0, 0)
 def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
 
-#Trackbar configuration
+#Trackbar callback function configurations
 def trackbar_callback(x):
     # updates global offsets by trackbar value 
     global slider_xoffset, slider_yoffset
@@ -173,124 +135,159 @@ def scale_callback(x):
     global xy_trackbar_scale
     xy_trackbar_scale = cv2.getTrackbarPos('scale', 'Radar Visualization') / 100
 
-# y default values default to 0 regardless of initialization below 
-slider_xoffset = 90 # mm
-slider_yoffset = 5 # mm
+def main(): 
+    # timestamps
+    t_rad = radar_points[0]['timestamp']   # radar's timestamp, in ms
+    T_RAD_BEGIN = t_rad   # radar's starting timestamp, in ms
+    TS_OFFSET = t_rad // 100000 * 100000   # trim off timestamp digits (first n digits) for display.
 
-x_squeeze = 50
-y_squeeze = 100
+    # radar camera synchronization
+    rad_cam_offset = 2300  # ms    # positive if radar is ahead of video
+    rad_cam_offset = rad_cam_offset - rad_cam_offset % (100)  # make sure it's multiples of video frame interval
+    print(f"Radar is set to be ahead of video by {rad_cam_offset}ms.")
+    # t_vid = cap.get(cv2.CAP_PROP_POS_MSEC)   # video's timestamp, in ms
 
-xy_trackbar_scale = 1
-
-cv2.namedWindow('Radar Visualization')
-cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 2000, trackbar_callback)
-cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 2000, trackbar_callback)
-
-cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 120, squeeze)
-cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 270, squeeze)
-
-cv2.createTrackbar('scale', 'Radar Visualization', int(xy_trackbar_scale*100), 200, scale_callback)
-
-# main loop
-while True:
-    # Account for radar camera synchronization
-    incr = 1000/30   # increment, in ms
-    all_increments = 0
-    ts_start = radar_points[0]['timestamp'] # initial timestamp of radar points at start of program
-    while round(rad_cam_offset) > 0:
-        all_increments += incr
-        while radar_points[0]['timestamp'] < ts_start + all_increments:
-            print(f"Point being removed at timestamp {radar_points[0]['timestamp']}")
-            radar_points.pop(0) # remove points that are before the current frame - should update ts_start
-        rad_cam_offset -= incr
-        print(f"rad_cam_offset is now: {0 if rad_cam_offset < 1 else rad_cam_offset}")
-
-    ret, frame = cap.read()
-    if not ret:
-        break
-    height, width = frame.shape[:2]
-    #print(f'FRAME Height {height}, Width {width}')
-    frame = cv2.resize(frame, (round(width)+0, round(height)+0))   # reduce frame size
-    #frame = cv2.resize(frame, (width, height))
-    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
-
-    xslider_val = cv2.getTrackbarPos('xoffset', 'Radar Visualization')
-    yslider_val = cv2.getTrackbarPos('yoffset', 'Radar Visualization')
-    # take points in current RADAR frame
-    t_end = t_rad + 33    # ending timestamp, in ms
+    # radar points buffer
     s1_pts = []
     s2_pts = []
-    while len(radar_points) > 0:
-        if radar_points[0]['timestamp'] > t_end:
+    # static points
+    s1_stat = StatisPoints(cnt_thres=5)
+    s2_stat = StatisPoints(cnt_thres=5)
+    # points in previous frame
+    s1_pts_prev = []
+    s2_pts_prev = []
+    scale = 0.5 
+
+    # video frame buffer
+    frame_prev = None
+    cap = cv2.VideoCapture('Controlled_test.avi')
+    num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    print(f"Number of frames: {num_frames}")
+
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    print(f'Height {height}, Width {width}')
+
+    wait_ms  = 1000//30   # wait time between frames, in ms
+
+    # BGR colours for drawing points on frame (OpenCV) 
+    GREEN = (0, 255, 0)
+    YELLOW = (0, 255, 255)
+    BLUE = (255, 0, 0)
+
+
+    # y default values default to 0 regardless of initialization below 
+    slider_xoffset = 90 # mm
+    slider_yoffset = 5 # mm
+
+    x_squeeze = 50
+    y_squeeze = 100
+
+    xy_trackbar_scale = 1
+
+    cv2.namedWindow('Radar Visualization')
+    cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 2000, trackbar_callback)
+    cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 2000, trackbar_callback)
+
+    cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 120, squeeze)
+    cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 270, squeeze)
+
+    cv2.createTrackbar('scale', 'Radar Visualization', int(xy_trackbar_scale*100), 200, scale_callback)
+
+    # main loop
+    while True:
+        # Account for radar camera synchronization
+        incr = 1000/30   # increment, in ms
+        all_increments = 0
+        ts_start = radar_points[0]['timestamp'] # initial timestamp of radar points at start of program
+        while round(rad_cam_offset) > 0:
+            all_increments += incr
+            while radar_points[0]['timestamp'] < ts_start + all_increments:
+                print(f"Point being removed at timestamp {radar_points[0]['timestamp']}")
+                radar_points.pop(0) # remove points that are before the current frame - should update ts_start
+            rad_cam_offset -= incr
+            print(f"rad_cam_offset is now: {0 if rad_cam_offset < 1 else rad_cam_offset}")
+
+        ret, frame = cap.read()
+        if not ret:
             break
-        if radar_points[0]['sensorId'] == 1:
-            s1_pts.append(radar_points[0])
-        elif radar_points[0]['sensorId'] == 2:
-            s2_pts.append(radar_points[0])
+        height, width = frame.shape[:2]
+        #print(f'FRAME Height {height}, Width {width}')
+        frame = cv2.resize(frame, (round(width), round(height)))   # reduce frame size
+        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
+
+        # take points in current RADAR frame
+        t_end = t_rad + 33    # ending timestamp, in ms
+        s1_pts = []
+        s2_pts = []
+        while len(radar_points) > 0:
+            if radar_points[0]['timestamp'] > t_end:
+                break
+            if radar_points[0]['sensorId'] == 1:
+                s1_pts.append(radar_points[0])
+            elif radar_points[0]['sensorId'] == 2:
+                s2_pts.append(radar_points[0])
+            else:
+                print("Error: sensorId not 1 or 2")
+            radar_points.pop(0)   # remove the point after taking it out.
+        t_rad = t_end
+        # if current frame contain points, use them. Otherwise, keep points from previous frame
+        if len(s1_pts) == 0:
+            s1_pts = s1_pts_prev
         else:
-            print("Error: sensorId not 1 or 2")
-        radar_points.pop(0)   # remove the point after taking it out.
-    t_rad = t_end
-    # if current frame contain points, use them. Otherwise, keep points from previous frame
-    if len(s1_pts) == 0:
-        s1_pts = s1_pts_prev
-    else:
-        s1_pts_prev = s1_pts
-    if len(s2_pts) == 0:
-        s2_pts = s2_pts_prev
-    else:
-        s2_pts_prev = s2_pts
-    #print(s1_pts, s2_pts)
+            s1_pts_prev = s1_pts
+        if len(s2_pts) == 0:
+            s2_pts = s2_pts_prev
+        else:
+            s2_pts_prev = s2_pts
+        #print(s1_pts, s2_pts)
 
-    # draw radar points, render static points as washed out color
-    if len(s1_pts) >= 1:
-        s1_stat.update([(coord['x'], coord['y']) for coord in s1_pts])
-        for coord in s1_pts:
-            x = int((coord['x'] + offsetx) * scale)  
-            y = int((-coord['y'] + offsety) * scale)   # y axis is flipped 
-            # comment above for temporarily removing initial offset to work only with trackbar offset  
-            # x = int((coord['x'] + 0) * scale)  
-            # y = int((-coord['y'] + 0) * scale)   # y axis is flipped 
+        # draw radar points, render static points as washed out color
+        if len(s1_pts) >= 1:
+            s1_stat.update([(coord['x'], coord['y']) for coord in s1_pts])
+            for coord in s1_pts:
+                x = int((coord['x'] + offsetx) * scale)  
+                y = int((-coord['y'] + offsety) * scale)   # y axis is flipped 
+                # modifications from trackbar values
+                x += slider_xoffset
+                y += slider_yoffset 
+                x -= x_squeeze
+                y -= y_squeeze
+                x = int(x * xy_trackbar_scale)
+                y = int(y * xy_trackbar_scale)
 
-            x += slider_xoffset
-            y += slider_yoffset 
-            x -= x_squeeze
-            y -= y_squeeze
-            x = int(x * xy_trackbar_scale)
-            y = int(y * xy_trackbar_scale)
+                if (coord['x'], coord['y']) in s1_stat.get_static_points():
+                    cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
+                else:
+                    cv2.circle(frame, (x,y), 4, GREEN, -1)
+        if len(s2_pts) >= 1:
+            s2_stat.update([(coord['x'], coord['y']) for coord in s2_pts])
+            for coord in s2_pts:
+                x = int((coord['x'] + offsetx) * scale)   
+                y = int((-coord['y'] + offsety) * scale)   # y axis is flipped  
+                # modifications from trackbar values
+                x += slider_xoffset
+                y += slider_yoffset
+                x += x_squeeze
+                y += y_squeeze
+                x = int(x * xy_trackbar_scale)
+                y = int(y * xy_trackbar_scale)
+                if (coord['x'], coord['y']) in s2_stat.get_static_points():
+                    cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
+                else:
+                    cv2.circle(frame, (x,y), 4, YELLOW, -1)
+        # after drawing points on frames, imshow the frames
+        cv2.imshow('Radar Visualization', frame)
+        # Key controls
+        key = cv2.waitKey(wait_ms) & 0xFF
+        if key == ord('q'):
+            break
+        elif key == ord('p'):
+            cv2.waitKey(0)
+        
+    cap.release()
+    cv2.destroyAllWindows()
 
-            if (coord['x'], coord['y']) in s1_stat.get_static_points():
-                cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
-            else:
-                cv2.circle(frame, (x,y), 4, GREEN, -1)
-    if len(s2_pts) >= 1:
-        s2_stat.update([(coord['x'], coord['y']) for coord in s2_pts])
-        for coord in s2_pts:
-            x = int((coord['x'] + offsetx) * scale)   
-            y = int((-coord['y'] + offsety) * scale)   # y axis is flipped  
-            # x = int((coord['x'] + 0) * scale)   
-            # y = int((-coord['y'] + 0) * scale)   # y axis is flipped
-            x += slider_xoffset
-            y += slider_yoffset
-            x += x_squeeze
-            y += y_squeeze
-            x = int(x * xy_trackbar_scale)
-            y = int(y * xy_trackbar_scale)
-
-            if (coord['x'], coord['y']) in s2_stat.get_static_points():
-                cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
-            else:
-                cv2.circle(frame, (x,y), 4, YELLOW, -1)
-    # after drawing points on frames, imshow the frames
-    cv2.imshow('Radar Visualization', frame)
-
-    # Key controls
-    key = cv2.waitKey(wait_ms) & 0xFF
-    if key == ord('q'):
-        break
-    elif key == ord('p'):
-        cv2.waitKey(0)
-
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    main()
 
