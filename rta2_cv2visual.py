@@ -175,6 +175,11 @@ def squeeze(x):
     x_squeeze = cv2.getTrackbarPos('x squeeze', 'Radar Visualization')
     y_squeeze = cv2.getTrackbarPos('y squeeze', 'Radar Visualization')
 
+def scale_callback(x):
+    # multiplies x and y by scale value from trackbar 
+    global xy_trackbar_scale
+    xy_trackbar_scale = cv2.getTrackbarPos('scale', 'Radar Visualization') / 100
+
 # y default values default to 0 regardless of initialization below 
 slider_xoffset = 90 # mm
 slider_yoffset = 5 # mm
@@ -182,12 +187,16 @@ slider_yoffset = 5 # mm
 x_squeeze = 50
 y_squeeze = 100
 
+xy_trackbar_scale = 1
+
 cv2.namedWindow('Radar Visualization')
 cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 1000, trackbar_callback)
 cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 1000, trackbar_callback)
 
 cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 120, squeeze)
 cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 270, squeeze)
+
+cv2.createTrackbar('scale', 'Radar Visualization', int(xy_trackbar_scale*100), 200, scale_callback)
 
 while True:
     '''
@@ -257,6 +266,8 @@ while True:
             y += slider_yoffset 
             x -= x_squeeze
             y -= y_squeeze
+            x = int(x * xy_trackbar_scale)
+            y = int(y * xy_trackbar_scale)
 
             if (coord['x'], coord['y']) in s1_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
@@ -273,7 +284,9 @@ while True:
             y += slider_yoffset
             x += x_squeeze
             y += y_squeeze
-
+            x = int(x * xy_trackbar_scale)
+            y = int(y * xy_trackbar_scale)
+            
             if (coord['x'], coord['y']) in s2_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
             else:
