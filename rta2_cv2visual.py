@@ -1,11 +1,6 @@
-# from importlib.metadata import metadata
 import cv2
 import json
 import numpy as np
-# from operator import truediv
-# from scipy.ndimage.interpolation import rotate
-# import math
-# import pandas as pd
 
 
 # Sensor Angles
@@ -25,7 +20,6 @@ s2_rotz = np.asmatrix(([math.cos(math.radians(alpha)), -math.sin(math.radians(al
 s2_rotx = np.asmatrix(([1,0,0], [0,math.cos(math.radians(-(180+beta))), -math.sin(math.radians(-(180+beta)))], [0, math.sin(math.radians(-(180+beta))),math.cos(math.radians(-(180+beta)))]))
 '''
 
-# Elliot code
 # for entry sensor
 # this is fundamentally wrong, think about starting from origin, then rotate and translate to corners
 def calc_rot_matrix(alpha, beta):
@@ -118,7 +112,7 @@ for i in data['frames']:
 
 print(radar_points[0:6])
 
-# ------------------ VISUALIZATION ------------------ #
+                        # ------------------ VISUALIZATION ------------------ #
 from point_cloud import StatisPoints
 # timestamps
 t_rad = radar_points[0]['timestamp']   # radar's timestamp, in ms
@@ -142,10 +136,6 @@ s1_pts_prev = []
 s2_pts_prev = []
 scale = 0.5 
 
-def washout(color, factor=0.2):
-    # create washed out color
-    return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
-
 # video frame buffer
 frame_prev = None
 cap = cv2.VideoCapture('Controlled_test.avi')
@@ -155,14 +145,17 @@ print(f"Number of frames: {num_frames}")
 height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
 print(f'Height {height}, Width {width}')
-# ret, frame = cap.read()
-# print(f'Returned {ret} and frame of shape {frame.shape}')
-#xy_scale = 0.5
+
 wait_ms  = 1000//30   # wait time between frames, in ms
+
 # BGR colours for drawing points on frame (OpenCV) 
 GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
+def washout(color, factor=0.2):
+    # create washed out color
+    return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
 
+#Trackbar configuration
 def trackbar_callback(x):
     # updates global offsets by trackbar value 
     global slider_xoffset, slider_yoffset
@@ -198,23 +191,20 @@ cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 270, squeeze)
 
 cv2.createTrackbar('scale', 'Radar Visualization', int(xy_trackbar_scale*100), 200, scale_callback)
 
+# main loop
 while True:
-    '''
+    # Account for radar camera synchronization
+    incr = 1000/30   # increment, in ms
+    all_increments = 0
+    ts_start = radar_points[0]['timestamp'] # initial timestamp of radar points at start of program
     while round(rad_cam_offset) > 0:
-        curr_time = radar_points[0]['timestamp']
-        i = 0
-    
-        while int(curr_time - radar_points[0]['timestamp']) < rad_cam_offset:
-           # print(f"{rad_cam_offset=}, {curr_time - radar_points[0]['timestamp']=}")
-            del radar_points[i]
-            curr_time = radar_points[i]['timestamp']
-            i += 1
-        
-        rad_cam_offset -= 1000/30
-        t_rad = radar_points[0]['timestamp']   # radar's timestamp, in ms
+        all_increments += incr
+        while radar_points[0]['timestamp'] < ts_start + all_increments:
+            print(f"Point being removed at timestamp {radar_points[0]['timestamp']}")
+            radar_points.pop(0) # remove points that are before the current frame - should update ts_start
+        rad_cam_offset -= incr
+        print(f"rad_cam_offset is now: {0 if rad_cam_offset < 1 else rad_cam_offset}")
 
-    #print(f"{radar_points[0]['timestamp']=}, {rad_cam_offset=}")
-    '''
     ret, frame = cap.read()
     if not ret:
         break
@@ -286,7 +276,7 @@ while True:
             y += y_squeeze
             x = int(x * xy_trackbar_scale)
             y = int(y * xy_trackbar_scale)
-            
+
             if (coord['x'], coord['y']) in s2_stat.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
             else:
