@@ -155,9 +155,9 @@ def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
 
-# y default values default to 0 regardless of initialization below 
 slider_xoffset = 120 # mm
 slider_yoffset = 115 # mm
+
 #Trackbar configuration
 def x_trackbar_callback(x):
     # updates global offsets by trackbar value 
