@@ -141,10 +141,6 @@ cap = cv2.VideoCapture('Controlled_test.avi')
 num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 print(f"Number of frames: {num_frames}")
 
-height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-print(f'Height {height}, Width {width}')
-
 wait_ms  = 1000//30   # wait time between frames, in ms
 
 # BGR colours for drawing points on frame (OpenCV) 
@@ -212,6 +208,14 @@ while True:
     height, width = frame.shape[:2]
     frame = cv2.resize(frame, (round(width), round(height)))   # reduce frame size
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
+    # update height and width after rotation
+    height = frame.shape[0]
+    width = frame.shape[1]
+    # draw gate outline 
+    # calculated positioning based on outer bars of gate - needs slight adjustments
+    rect_start = (width//2 - width//6, height//4)
+    rect_end = (width//2 + width//6, height//4 + height//2)
+    cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
 
     # take points in current RADAR frame
     t_end = t_rad + 33    # ending timestamp, in ms
