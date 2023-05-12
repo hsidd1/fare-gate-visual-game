@@ -2,7 +2,6 @@ import cv2
 import json
 import numpy as np
 
-
 # Sensor Angles
 alpha = 47.5
 beta = 17.5
@@ -21,7 +20,6 @@ s2_rotx = np.asmatrix(([1,0,0], [0,math.cos(math.radians(-(180+beta))), -math.si
 '''
 
 # for entry sensor
-# this is fundamentally wrong, think about starting from origin, then rotate and translate to corners
 def calc_rot_matrix(alpha, beta):
     """alpha is the angle along z axis - yaw
     beta is the angle along x axis - pitch
@@ -114,6 +112,7 @@ print(radar_points[0:6])
 
                         # ------------------ VISUALIZATION ------------------ #
 from point_cloud import StatisPoints
+
 # timestamps
 t_rad = radar_points[0]['timestamp']   # radar's timestamp, in ms
 T_RAD_BEGIN = t_rad   # radar's starting timestamp, in ms
@@ -151,6 +150,7 @@ wait_ms  = 1000//30   # wait time between frames, in ms
 # BGR colours for drawing points on frame (OpenCV) 
 GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
+BLUE = (255, 0, 0)
 def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
@@ -183,8 +183,8 @@ y_squeeze = 100
 xy_trackbar_scale = 1
 
 cv2.namedWindow('Radar Visualization')
-cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 1000, trackbar_callback)
-cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 1000, trackbar_callback)
+cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 2000, trackbar_callback)
+cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 2000, trackbar_callback)
 
 cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 120, squeeze)
 cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 270, squeeze)
