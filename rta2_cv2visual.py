@@ -155,15 +155,22 @@ def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
 
+# y default values default to 0 regardless of initialization below 
+slider_xoffset = 120 # mm
+slider_yoffset = 115 # mm
 #Trackbar configuration
-def trackbar_callback(x):
+def x_trackbar_callback(x):
     # updates global offsets by trackbar value 
-    global slider_xoffset, slider_yoffset
+    global slider_xoffset
     slider_xoffset = cv2.getTrackbarPos('xoffset', 'Radar Visualization')
+
+def y_trackbar_callback(x):
+    # updates global offsets by trackbar value 
+    global  slider_yoffset
     slider_yoffset = cv2.getTrackbarPos('yoffset', 'Radar Visualization')
 
 def squeeze(x):
-    # updates global offsets by trackbar value 
+    # updates global offsets by trackbar value - no longer in use 
     global x_squeeze, y_squeeze
     x_squeeze = cv2.getTrackbarPos('x squeeze', 'Radar Visualization')
     y_squeeze = cv2.getTrackbarPos('y squeeze', 'Radar Visualization')
@@ -173,9 +180,6 @@ def scale_callback(x):
     global xy_trackbar_scale
     xy_trackbar_scale = cv2.getTrackbarPos('scale', 'Radar Visualization') / 100
 
-# y default values default to 0 regardless of initialization below 
-slider_xoffset = 0 # mm
-slider_yoffset = 0 # mm
 
 x_squeeze = 0
 y_squeeze = 0
@@ -183,8 +187,8 @@ y_squeeze = 0
 xy_trackbar_scale = 1
 
 cv2.namedWindow('Radar Visualization')
-cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 2000, trackbar_callback)
-cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 2000, trackbar_callback)
+cv2.createTrackbar('xoffset', 'Radar Visualization', slider_xoffset, 2000, x_trackbar_callback)
+cv2.createTrackbar('yoffset', 'Radar Visualization', slider_yoffset, 2000, y_trackbar_callback)
 
 #cv2.createTrackbar('x squeeze', 'Radar Visualization', x_squeeze, 120, squeeze)
 #cv2.createTrackbar('y squeeze', 'Radar Visualization', y_squeeze, 270, squeeze)
