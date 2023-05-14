@@ -157,7 +157,7 @@ xy_trackbar_scale = 0.5 # scale factor for x and y
 # initial values of above 
 initial_x_offset = slider_xoffset
 initial_y_offset = slider_yoffset
-initial_scale = 1
+initial_scale = xy_trackbar_scale
 #Trackbar configuration
 def x_trackbar_callback(x):
     # updates global offsets by trackbar value 
