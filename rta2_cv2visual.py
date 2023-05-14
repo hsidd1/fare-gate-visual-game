@@ -204,15 +204,15 @@ while True:
     width = frame.shape[1]
     # draw gate outline 
     # calculated positioning based on outer bars of gate - needs slight adjustments
-    start_x = width//2 - width//6 - initial_x_offset # removing default offset from default start as its config for default offset
-    start_y = height//4 - initial_y_offset 
+    start_x = width//2 - width//6 - initial_x_offset + 10 # removing default offset from default start as its config for default offset
+    start_y = height//4 - initial_y_offset  -25
     start_x += slider_xoffset
     start_y += slider_yoffset
     #start_x, start_y = int(start_x * initial_scale), int(start_y * initial_scale)
     #start_x, start_y = int(start_x * xy_trackbar_scale), int(start_y * xy_trackbar_scale)
     rect_start = (start_x, start_y)
-    end_x = width//2 + width//6 - initial_x_offset
-    end_y = height//4 + height//2 - initial_y_offset
+    end_x = width//2 + width//6 - initial_x_offset + 8
+    end_y = height//4 + height//2 - initial_y_offset - 30
     end_x += slider_xoffset
     end_y += slider_yoffset
     #end_x, end_y = int(end_x * initial_scale), int(end_y * initial_scale)
