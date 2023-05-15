@@ -193,8 +193,8 @@ def draw_gate_area_default():
     end_y = height//4 + height//2 - initial_y_offset - 30
     end_x += slider_xoffset
     end_y += slider_yoffset
-    #end_x, end_y = int(end_x * initial_scale), int(end_y * initial_scale)
-    #end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
+    end_x, end_y = int(end_x / initial_scale), int(end_y / initial_scale)
+    end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
     rect_end = (end_x, end_y)
     cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
 
