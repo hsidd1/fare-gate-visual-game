@@ -218,11 +218,11 @@ def draw_gate_topleft(): # works well with 333 280 0.5 trackbar values
     rect_end = (end_x, end_y)
     cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
 
+all_increments = 0
 # main loop
 while True:
     # Account for radar camera synchronization
     incr = 1000/30   # increment, in ms
-    all_increments = 0
     ts_start = radar_points[0]['timestamp'] # initial timestamp of radar points at start of program
     while round(rad_cam_offset) > 0:
         all_increments += incr
