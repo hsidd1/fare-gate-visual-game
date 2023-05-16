@@ -133,7 +133,7 @@ s2_stat = StatisPoints(cnt_thres=5)
 # points in previous frame
 s1_pts_prev = []
 s2_pts_prev = []
-scale = 0.5 
+scalemm2px = 0.5 
 
 # video frame buffer
 frame_prev = None
@@ -179,7 +179,7 @@ cv2.createTrackbar('x offset', 'Radar Visualization', slider_xoffset, 2000, x_tr
 cv2.createTrackbar('y offset', 'Radar Visualization', slider_yoffset, 2000, y_trackbar_callback)
 cv2.createTrackbar('scale %', 'Radar Visualization', int(xy_trackbar_scale*100), 200, scale_callback) # *100 and /100 to account for floating point usuability to downscale
 
-def draw_gate_area_default():
+def draw_gate_area_default(): # For 120, 115, 0.5 trackbar values 
     # draw gate outline 
     # calculated positioning based on outer bars of gate - needs slight adjustments
     start_x = width//2 - width//6 - initial_x_offset + 10 # removing default offset from default start as its config for default offset
@@ -252,8 +252,8 @@ while True:
     if len(s1_pts) >= 1:
         s1_stat.update([(coord['x'], coord['y']) for coord in s1_pts])
         for coord in s1_pts:
-            x = int((coord['x'] + offsetx) * scale)  
-            y = int((-coord['y'] + offsety) * scale)   # y axis is flipped 
+            x = int((coord['x'] + offsetx) * scalemm2px)  
+            y = int((-coord['y'] + offsety) * scalemm2px)   # y axis is flipped 
             
             # xy modifications from trackbar controls
             x = int(x * xy_trackbar_scale)
@@ -267,8 +267,8 @@ while True:
     if len(s2_pts) >= 1:
         s2_stat.update([(coord['x'], coord['y']) for coord in s2_pts])
         for coord in s2_pts:
-            x = int((coord['x'] + offsetx) * scale)   
-            y = int((-coord['y'] + offsety) * scale)   # y axis is flipped  
+            x = int((coord['x'] + offsetx) * scalemm2px)   
+            y = int((-coord['y'] + offsety) * scalemm2px)   # y axis is flipped  
             # xy modifications from trackbar controls
             x = int(x * xy_trackbar_scale)
             y = int(y * xy_trackbar_scale)
