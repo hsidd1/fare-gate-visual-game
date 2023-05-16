@@ -231,7 +231,7 @@ while True:
             radar_points.pop(0) # remove points that are before the current frame - should update ts_start
         rad_cam_offset -= incr
         print(f"rad_cam_offset is now: {0 if rad_cam_offset < 1 else rad_cam_offset}")
-    t_rad = radar_points[0]['timestamp']   # update t_rad to the timestamp of the first point in the frame
+        t_rad = radar_points[0]['timestamp']   # update t_rad to the timestamp of the first point in the frame
     ret, frame = cap.read()
     if not ret:
         break
