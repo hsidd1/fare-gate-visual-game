@@ -204,17 +204,17 @@ def draw_gate_topleft(): # works well with 333 280 0.5 trackbar values
     start_x = 0 
     start_y = 0 
     # modify start_x and start_y based on trackbar values
+    start_x, start_y = int(start_x * xy_trackbar_scale), int(start_y * xy_trackbar_scale)
     start_x += slider_xoffset
     start_y += slider_yoffset
-    start_x, start_y = int(start_x * xy_trackbar_scale), int(start_y * xy_trackbar_scale)
     rect_start = (start_x, start_y)
     # end_x and end_y are calculated based on the width and height of the gate
     end_x = offsetx * 2 * scalemm2px
     end_y = offsety * 2 * scalemm2px
     # modify end_x and end_y based on trackbar values
+    end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
     end_x += slider_xoffset
     end_y += slider_yoffset
-    end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
     rect_end = (end_x, end_y)
     cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
 
