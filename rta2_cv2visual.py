@@ -151,9 +151,9 @@ def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
 # values that modify the x and y coordinates of the radar points
-slider_xoffset = 120 # mm
-slider_yoffset = 115 # mm
-xy_trackbar_scale = 0.5 # scale factor for x and y
+slider_xoffset = 0 # mm
+slider_yoffset = 0 # mm
+xy_trackbar_scale = 1 # scale factor for x and y
 # initial values of above 
 initial_x_offset = slider_xoffset
 initial_y_offset = slider_yoffset
@@ -194,6 +194,26 @@ def draw_gate_area_default(): # For 120, 115, 0.5 trackbar values
     end_x += slider_xoffset
     end_y += slider_yoffset
     end_x, end_y = int(end_x / initial_scale), int(end_y / initial_scale)
+    end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
+    rect_end = (end_x, end_y)
+    cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
+
+# draw gate at top left of window, with width and height of gate. Scale to match gate location with trackbar 
+def draw_gate_topleft(): # works well with 333 280 0.5 trackbar values
+    # initially at top left corner
+    start_x = 0 
+    start_y = 0 
+    # modify start_x and start_y based on trackbar values
+    start_x += slider_xoffset
+    start_y += slider_yoffset
+    start_x, start_y = int(start_x * xy_trackbar_scale), int(start_y * xy_trackbar_scale)
+    rect_start = (start_x, start_y)
+    # end_x and end_y are calculated based on the width and height of the gate
+    end_x = offsetx * 2 * scalemm2px
+    end_y = offsety * 2 * scalemm2px
+    # modify end_x and end_y based on trackbar values
+    end_x += slider_xoffset
+    end_y += slider_yoffset
     end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
     rect_end = (end_x, end_y)
     cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
@@ -280,7 +300,8 @@ while True:
                 cv2.circle(frame, (x,y), 4, YELLOW, -1)
     
     # draw gate outline
-    draw_gate_area_default()
+    #draw_gate_area_default() # For 120, 115, 0.5 trackbar values
+    draw_gate_topleft() # For 0, 0, 1 trackbar values
 
     # after drawing points on frames, imshow the frames
     cv2.imshow('Radar Visualization', frame)
