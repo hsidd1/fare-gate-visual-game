@@ -242,22 +242,26 @@ while True:
     height = frame.shape[0]
     width = frame.shape[1]
    
-
-    # take points in current RADAR frame
-    t_end = t_rad + 33    # ending timestamp, in ms
-    s1_pts = []
-    s2_pts = []
-    while len(radar_points) > 0:
-        if radar_points[0]['timestamp'] > t_end:
-            break
-        if radar_points[0]['sensorId'] == 1:
-            s1_pts.append(radar_points[0])
-        elif radar_points[0]['sensorId'] == 2:
-            s2_pts.append(radar_points[0])
-        else:
-            print("Error: sensorId not 1 or 2")
-        radar_points.pop(0)   # remove the point after taking it out.
-    t_rad = t_end
+    if round(rad_cam_offset) < 0:
+            # radar to wait for video
+            rad_cam_offset += 1000 / 33
+            print("radar to wait for video (rad_cam_offset < 0)") 
+    else:
+        # take points in current RADAR frame
+        t_end = t_rad + 33    # ending timestamp, in ms
+        s1_pts = []
+        s2_pts = []
+        while len(radar_points) > 0:
+            if radar_points[0]['timestamp'] > t_end:
+                break
+            if radar_points[0]['sensorId'] == 1:
+                s1_pts.append(radar_points[0])
+            elif radar_points[0]['sensorId'] == 2:
+                s2_pts.append(radar_points[0])
+            else:
+                print("Error: sensorId not 1 or 2")
+            radar_points.pop(0)   # remove the point after taking it out.
+        t_rad = t_end
     # if current frame contain points, use them. Otherwise, keep points from previous frame
     if len(s1_pts) == 0:
         s1_pts = s1_pts_prev
