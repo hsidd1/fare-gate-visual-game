@@ -1,8 +1,7 @@
-rad_cam_offset: 2300 # ms, positive if radar is ahead of video
-scalemm2px: 0.5 
-wait_ms: 33 # wait time between frames in ms
-
 TrackbarDefaults:
-  slider_xoffset: 0
-  slider_yoffset: 0
-  xy_trackbar_scale: 1 
+  slider_xoffset: 167
+  slider_yoffset: 140
+  xy_trackbar_scale: 0.5
+rad_cam_offset: 2300
+scalemm2px: 0.5
+wait_ms: 33
