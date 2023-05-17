@@ -175,10 +175,7 @@ BLUE = (255, 0, 0)
 def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
-# values that modify the x and y coordinates of the radar points
-#slider_xoffset = 0 # mm
-#slider_yoffset = 0 # mm
-#xy_trackbar_scale = 1 # scale factor for x and y
+
 # initial values of above 
 initial_x_offset = slider_xoffset
 initial_y_offset = slider_yoffset
