@@ -176,10 +176,6 @@ def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
 
-# initial values of above 
-initial_x_offset = slider_xoffset
-initial_y_offset = slider_yoffset
-initial_scale = xy_trackbar_scale
 #Trackbar configuration
 def x_trackbar_callback(x):
     # updates global offsets by trackbar value 
@@ -200,25 +196,6 @@ cv2.namedWindow('Radar Visualization')
 cv2.createTrackbar('x offset', 'Radar Visualization', slider_xoffset, 2000, x_trackbar_callback)
 cv2.createTrackbar('y offset', 'Radar Visualization', slider_yoffset, 2000, y_trackbar_callback)
 cv2.createTrackbar('scale %', 'Radar Visualization', int(xy_trackbar_scale*100), 200, scale_callback) # *100 and /100 to account for floating point usuability to downscale
-
-def draw_gate_area_default(): # For 120, 115, 0.5 trackbar values 
-    # draw gate outline 
-    # calculated positioning based on outer bars of gate - needs slight adjustments
-    start_x = width//2 - width//6 - initial_x_offset + 10 # removing default offset from default start as its config for default offset
-    start_y = height//4 - initial_y_offset  -25
-    start_x += slider_xoffset
-    start_y += slider_yoffset
-    start_x, start_y = int(start_x / initial_scale), int(start_y / initial_scale)
-    start_x, start_y = int(start_x * xy_trackbar_scale), int(start_y * xy_trackbar_scale)
-    rect_start = (start_x, start_y)
-    end_x = width//2 + width//6 - initial_x_offset + 8
-    end_y = height//4 + height//2 - initial_y_offset - 30
-    end_x += slider_xoffset
-    end_y += slider_yoffset
-    end_x, end_y = int(end_x / initial_scale), int(end_y / initial_scale)
-    end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
-    rect_end = (end_x, end_y)
-    cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
 
 # draw gate at top left of window, with width and height of gate. Scale to match gate location with trackbar 
 def draw_gate_topleft(): 
