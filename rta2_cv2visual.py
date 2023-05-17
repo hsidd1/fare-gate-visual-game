@@ -303,7 +303,26 @@ while True:
                 cv2.circle(frame, (x,y), 4, YELLOW, -1)
     
     draw_gate_topleft() # For 0, 0, 1 trackbar values
+    cv2.putText(frame, f"end timestamp: {t_end}ms", (10, height-20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
+    text_str = f"Curr frame ts:{(t_rad-T_RAD_BEGIN)/1000:.3f}   Replay {1:.1f}x"
+    cv2.putText(frame, text_str, (10, height-40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # find timestamps of sensors
+    sensor1_timestamps = list(set([coord['timestamp'] for coord in s1_pts]))
+    text_str = f"s_entry ts:"
+    for i, timestamp in enumerate(sensor1_timestamps):
+        text_str += f" s1[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
+    cv2.putText(frame, text_str, (10, height-100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # find timestamps of sensors
+    sensor2_timestamps = list(set([coord['timestamp'] for coord in s2_pts]))
+    text_str = f"s_exit ts: "
+    for i, timestamp in enumerate(sensor2_timestamps):
+        text_str += f" s2[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
+    cv2.putText(frame, text_str, (10, height-80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # Draw info text
+    text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
+    cv2.putText(frame, text_str, (10, height-60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    
     # after drawing points on frames, imshow the frames
     cv2.imshow('Radar Visualization', frame)
 
