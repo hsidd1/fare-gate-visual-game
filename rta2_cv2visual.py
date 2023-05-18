@@ -61,8 +61,11 @@ def rot_mtx_exit(alpha, beta):
 s1_rotz_elliot, s1_rotx_elliot = rot_mtx_entry(alpha, beta)
 s2_rotz_elliot, s2_rotx_elliot = rot_mtx_exit(alpha, beta)
 
+with open('cv-config.yaml', 'r') as file:
+    cv_config = yaml.safe_load(file)
 # Opening JSON file
-with open('Control_test1.json') as json_file:
+radar_data_file = cv_config['Files']['radar_data_file']
+with open(radar_data_file) as json_file:
     data = json.load(json_file)
 
 # Print the data of dictionary
@@ -124,8 +127,6 @@ for i in data['frames']:
                         # ------------------ VISUALIZATION ------------------ #
 from point_cloud import StatisPoints
 
-with open('cv-config.yaml', 'r') as file:
-    cv_config = yaml.safe_load(file)
 
 # Access the values from the loaded configuration
 rad_cam_offset = cv_config['rad_cam_offset']
@@ -164,7 +165,8 @@ s2_pts_prev = []
 
 # video frame buffer
 frame_prev = None
-cap = cv2.VideoCapture('Controlled_test.avi')
+video_file = cv_config['Files']['video_file']
+cap = cv2.VideoCapture(video_file)
 num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 print(f"Number of frames: {num_frames}")
 
@@ -335,6 +337,7 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+
 while True:
     choice = input("Update final trackbar values in yaml? (y/n): ").lower()
     if choice == 'y':
