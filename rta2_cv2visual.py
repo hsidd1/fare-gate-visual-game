@@ -1,13 +1,24 @@
 import cv2
 import json
 import numpy as np
+import yaml
 
-# Sensor Angles
-alpha = 47.5
-beta = 17.5
-offsetx = 325   # mm, along the width of isle
-offsety = 595   # mm, along the gate isle
-offsetz = 850     # mm height
+# Parsing sensor specific configuration from yaml file
+with open('sensor_config.yaml', 'r') as file:
+    s_config = yaml.safe_load(file)
+
+# Access the values from the loaded configuration
+alpha = s_config['SensorAngles']['alpha']
+beta = s_config['SensorAngles']['beta']
+offsetx = s_config['Offsets']['offsetx']
+offsety = s_config['Offsets']['offsety']
+offsetz = s_config['Offsets']['offsetz']
+
+print(f"alpha: {alpha}")
+print(f"beta: {beta}")
+print(f"offsetx: {offsetx}")
+print(f"offsety: {offsety}")
+print(f"offsetz: {offsetz}")
 
 '''
 # Entry Sensor Rot Matrices
@@ -108,10 +119,28 @@ for i in data['frames']:
         
         radar_points.append(s)
 
-print(radar_points[0:6])
+#print(radar_points[0:6])
 
                         # ------------------ VISUALIZATION ------------------ #
 from point_cloud import StatisPoints
+
+with open('cv-config.yaml', 'r') as file:
+    cv_config = yaml.safe_load(file)
+
+# Access the values from the loaded configuration
+rad_cam_offset = cv_config['rad_cam_offset']
+scalemm2px = cv_config['scalemm2px']
+wait_ms = cv_config['wait_ms']
+slider_xoffset = cv_config['TrackbarDefaults']['slider_xoffset']
+slider_yoffset = cv_config['TrackbarDefaults']['slider_yoffset']
+xy_trackbar_scale = cv_config['TrackbarDefaults']['xy_trackbar_scale']
+
+print(f"rad_cam_offset: {rad_cam_offset}")
+print(f"scalemm2px: {scalemm2px}")
+print(f"wait_ms: {wait_ms}")
+print(f"slider_xoffset: {slider_xoffset}")
+print(f"slider_yoffset: {slider_yoffset}")
+print(f"xy_trackbar_scale: {xy_trackbar_scale}")
 
 # timestamps
 t_rad = radar_points[0]['timestamp']   # radar's timestamp, in ms
@@ -119,7 +148,6 @@ T_RAD_BEGIN = t_rad   # radar's starting timestamp, in ms
 TS_OFFSET = t_rad // 100000 * 100000   # trim off timestamp digits (first n digits) for display.
 
 # radar camera synchronization
-rad_cam_offset = 2300  # ms    # positive if radar is ahead of video
 rad_cam_offset = rad_cam_offset - rad_cam_offset % (100)  # make sure it's multiples of video frame interval
 print(f"Radar is set to be ahead of video by {rad_cam_offset}ms.")
 # t_vid = cap.get(cv2.CAP_PROP_POS_MSEC)   # video's timestamp, in ms
@@ -133,15 +161,12 @@ s2_stat = StatisPoints(cnt_thres=5)
 # points in previous frame
 s1_pts_prev = []
 s2_pts_prev = []
-scalemm2px = 0.5 
 
 # video frame buffer
 frame_prev = None
 cap = cv2.VideoCapture('Controlled_test.avi')
 num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 print(f"Number of frames: {num_frames}")
-
-wait_ms  = 1000//30   # wait time between frames, in ms
 
 # BGR colours for drawing points on frame (OpenCV) 
 GREEN = (0, 255, 0)
@@ -150,14 +175,7 @@ BLUE = (255, 0, 0)
 def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
-# values that modify the x and y coordinates of the radar points
-slider_xoffset = 0 # mm
-slider_yoffset = 0 # mm
-xy_trackbar_scale = 1 # scale factor for x and y
-# initial values of above 
-initial_x_offset = slider_xoffset
-initial_y_offset = slider_yoffset
-initial_scale = xy_trackbar_scale
+
 #Trackbar configuration
 def x_trackbar_callback(x):
     # updates global offsets by trackbar value 
@@ -179,27 +197,8 @@ cv2.createTrackbar('x offset', 'Radar Visualization', slider_xoffset, 2000, x_tr
 cv2.createTrackbar('y offset', 'Radar Visualization', slider_yoffset, 2000, y_trackbar_callback)
 cv2.createTrackbar('scale %', 'Radar Visualization', int(xy_trackbar_scale*100), 200, scale_callback) # *100 and /100 to account for floating point usuability to downscale
 
-def draw_gate_area_default(): # For 120, 115, 0.5 trackbar values 
-    # draw gate outline 
-    # calculated positioning based on outer bars of gate - needs slight adjustments
-    start_x = width//2 - width//6 - initial_x_offset + 10 # removing default offset from default start as its config for default offset
-    start_y = height//4 - initial_y_offset  -25
-    start_x += slider_xoffset
-    start_y += slider_yoffset
-    start_x, start_y = int(start_x / initial_scale), int(start_y / initial_scale)
-    start_x, start_y = int(start_x * xy_trackbar_scale), int(start_y * xy_trackbar_scale)
-    rect_start = (start_x, start_y)
-    end_x = width//2 + width//6 - initial_x_offset + 8
-    end_y = height//4 + height//2 - initial_y_offset - 30
-    end_x += slider_xoffset
-    end_y += slider_yoffset
-    end_x, end_y = int(end_x / initial_scale), int(end_y / initial_scale)
-    end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
-    rect_end = (end_x, end_y)
-    cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
-
 # draw gate at top left of window, with width and height of gate. Scale to match gate location with trackbar 
-def draw_gate_topleft(): # works well with 333 280 0.5 trackbar values
+def draw_gate_topleft(): 
     # initially at top left corner
     start_x = 0 
     start_y = 0 
@@ -303,10 +302,27 @@ while True:
             else:
                 cv2.circle(frame, (x,y), 4, YELLOW, -1)
     
-    # draw gate outline
-    #draw_gate_area_default() # For 120, 115, 0.5 trackbar values
     draw_gate_topleft() # For 0, 0, 1 trackbar values
-
+    cv2.putText(frame, "Controls - 'q': quit  'p': pause", (width-175, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 150), 1)
+    cv2.putText(frame, f"end timestamp: {t_end}ms", (10, height-20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    text_str = f"Curr frame ts:{(t_rad-T_RAD_BEGIN)/1000:.3f}   Replay {1:.1f}x"
+    cv2.putText(frame, text_str, (10, height-40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # find timestamps of sensors
+    sensor1_timestamps = list(set([coord['timestamp'] for coord in s1_pts]))
+    text_str = f"s_entry ts:"
+    for i, timestamp in enumerate(sensor1_timestamps):
+        text_str += f" s1[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
+    cv2.putText(frame, text_str, (10, height-100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # find timestamps of sensors
+    sensor2_timestamps = list(set([coord['timestamp'] for coord in s2_pts]))
+    text_str = f"s_exit ts: "
+    for i, timestamp in enumerate(sensor2_timestamps):
+        text_str += f" s2[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
+    cv2.putText(frame, text_str, (10, height-80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # Draw info text
+    text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
+    cv2.putText(frame, text_str, (10, height-60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    
     # after drawing points on frames, imshow the frames
     cv2.imshow('Radar Visualization', frame)
 
@@ -319,3 +335,18 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+while True:
+    choice = input("Update final trackbar values in yaml? (y/n): ").lower()
+    if choice == 'y':
+        cv_config['TrackbarDefaults']['slider_xoffset'] = slider_xoffset
+        cv_config['TrackbarDefaults']['slider_yoffset'] = slider_yoffset
+        cv_config['TrackbarDefaults']['xy_trackbar_scale'] = xy_trackbar_scale
+        with open('cv-config.yaml', 'w') as file:
+            yaml.dump(cv_config, file)
+        print("Trackbar values updated in yaml.")
+        break
+    elif choice == 'n':
+        print("Trackbar values not updated in yaml.")
+        break
+    else:
+        print("Invalid input. Please enter 'y' or 'n'.")

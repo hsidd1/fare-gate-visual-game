@@ -1,0 +1,9 @@
+# Configuration for sensor parameters 
+SensorAngles:
+  alpha: 47.5
+  beta: 17.5
+
+Offsets:
+  offsetx: 325
+  offsety: 595
+  offsetz: 850
