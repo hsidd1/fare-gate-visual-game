@@ -1,8 +1,8 @@
 class RadarFrame:
-    def __init__(self, sensorId1, x1, y1, z1, timestamp1, sensorId2, x2, y2, z2, timestamp2, status) -> None:
+    def __init__(self, sensorId1, x1, y1, z1, timestamp1, sensorId2, x2, y2, z2, timestamp2, status=-1) -> None:
         self.data = [{'sensorId': sensorId1, 'x': x1, 'y': y1, 'z': z1, 'timestamp': timestamp1},
                     {'sensorId': sensorId2, 'x': x2, 'y': y2, 'z': z2, 'timestamp': timestamp2}]
-        self.isStatic = status # bool 
+        self.isStatic = status # -1 default, 1 static, 0 not static. checked by static points class
         self.points_list = [(point['x'], point['y'], status) for point in self.data] # [[(x,y,static),(...)]
 
     def is_empty(self, sensor_id):
