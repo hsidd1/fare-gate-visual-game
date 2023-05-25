@@ -14,12 +14,17 @@ def get_data(self):
      return self.data
 
 def take_next_frame(self, interval):
+    raise NotImplementedError("take_next_frame not implemented yet")
     # return RadarFrame object with data from next frame
     timestamp = self.data[0]['timestamp'] + interval
     # check if data is empty to modify status
     #status = True if len(self.data) > 0 else False
     # change status later to be checked by static points class, keep unknown status for now 
     status = -1
+    # needs to be constructed differently here 
+    frame_data  = 0
+    # build frame data 
+    return RadarFrame(frame_data, status)
     return RadarFrame(self.data[0]['sensorId'], self.data[0]['x'], self.data[0]['y'], self.data[0]['z'], timestamp,
                       self.data[1]['sensorId'], self.data[1]['x'], self.data[1]['y'], self.data[1]['z'], timestamp,
                       status)
