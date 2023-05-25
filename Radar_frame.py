@@ -6,18 +6,9 @@ class RadarFrame:
         self.points_list = [(point['x'], point['y'], status) for point in self.data] # [[(x,y,static),(...)]
 
     def is_empty(self, sensor_id):
-        return len(self.data) == 0
-    
-    def update_static_points(self, curr_points):
-        # update self.static_points with the results from StaticPoints class.
-        # if sensor id 1 is empty, set s1 pts as prev points 
-        if self.is_empty(1):
-            s1_pts = curr_points
-        elif self.is_empty(2):
-            s2_pts = curr_points
-        else:
-            #print("Both sensors have data")
-            pass
+        
+        s_id = 0 if sensor_id == 1 else 1 # get index of sensor id in self.data
+        return len(self.data[s_id]) == 0
     
     # a getter for points list to be used for display
     def get_points_for_display(self, sensor_id) -> list:
