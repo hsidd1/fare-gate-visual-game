@@ -1,10 +1,10 @@
-# radar-camera-visual-sync-game
-An experiment project to synchronize and align camera and radar recordings, using PyGame.
+# radar-camera-visual-sync
+A project to synchronize and align camera and radar recordings and display data visually.
 
 ## Required packages
 - numpy
 - json
-- pygame
+- yaml
 - opencv (cv2)
 
 ## Required files
