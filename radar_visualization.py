@@ -25,24 +25,18 @@ def update(i):
 
     ax.clear()
     ax.scatter(x, y, z, c=z, cmap='viridis')
-    if frame_data["TLV_Type"] == 1020: # change which tlv type to be plotted here
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        ax.set_title(f'Frame {i+1}')
-        print(f"Frame: {frame_data['frame']}")
-        print(f"Number of points in frame {i+1}: {len(x)}")
-        
-    print(f"maximum and minimum of each coordinate: {max(x), min(x), max(y), min(y), max(z), min(z)}")
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_title(f'Frame {i+1}')
+    print(f"Number of points in frame {i+1}: {len(x)}")
 # Create the animation
 ani = animation.FuncAnimation(fig, update, frames=frames, interval=33, blit=False)
 
 plt.show()
-# fix range of xyz axes
-# print frame information 
-# option to change tlv type to be plotted
-# save recording as video
-# prnint onto plot 
+
+
 
 # import json
 # import matplotlib.pyplot as plt
