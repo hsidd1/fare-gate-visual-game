@@ -7,6 +7,8 @@
 # an old version 
 x_rta2_visual_cv2.py
 
+format_tlv.py
+input.txt
 # PyCharm
 .idea/
 
