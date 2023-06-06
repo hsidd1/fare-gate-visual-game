@@ -15,6 +15,7 @@ total_frames = len(data)
 # modify below to change number of frames to run in animation
 frames_to_run = 500 # len data if all 
 
+
 # Create the figure and 3D subplot
 fig = plt.figure(figsize=(12, 6), dpi=100)
 ax = fig.add_subplot(111, projection='3d')
