@@ -19,6 +19,7 @@ print(f'Total frames: {total_frames}')
 frames_to_run = 100 # len data if all 
 marker_size = 5
 
+
 # Create the figure and 3D subplot
 fig = plt.figure(figsize=(9, 6), dpi=100)
 ax = fig.add_subplot(111, projection='3d')
