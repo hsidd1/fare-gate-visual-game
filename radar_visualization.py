@@ -6,18 +6,23 @@ import os
 import matplotlib as mpl
 
 input_file = 'tlv_data_log.json'
-# uncomment below with raw string for file path to ffmpeg.exe in case of ffmpeg issues 
+# uncomment with raw string for file path to ffmpeg.exe in case of ffmpeg issues 
 #mpl.rcParams['animation.ffmpeg_path'] = r''
+
 with open(input_file, 'r') as file:
     data = json.load(file)
 
 total_frames = len(data)
+print(f'Total frames: {total_frames}')
+
 # modify below to change number of frames to run in animation
-frames_to_run = 500 # len data if all 
+frames_to_run = 100 # len data if all 
+marker_size = 5
 
 # Create the figure and 3D subplot
-fig = plt.figure(figsize=(12, 6), dpi=100)
+fig = plt.figure(figsize=(9, 6), dpi=100)
 ax = fig.add_subplot(111, projection='3d')
+
 # For axis limits 
 def print_max_min():
     '''
@@ -28,7 +33,6 @@ def print_max_min():
     min x: -14.2102056
     min y: 0.0
     min z: -15.5174625
-
     '''
     max_x = max(max(frame['x']) for frame in data)
     max_y = max(max(frame['y']) for frame in data)
@@ -51,12 +55,22 @@ def update(i):
     if i >= frames_to_run:
        return
     frame_data = data[i]
+    #ax.view_init(elev=i, azim=i)
     x = frame_data['x']
     y = frame_data['y']
     z = frame_data['z']
+    tid = frame_data.get('tid', None)
     ax.clear()
+    if frame_data['TLV_type'] == 1020:
+        point_colour = (0,0,0.5) 
+    elif frame_data['TLV_type'] == 1010:
+        point_colour = 'red'
+    else:
+        point_colour = 'green'
     for j in range(len(x)):
-        ax.scatter(x[j], y[j], z[j], c=z[j], cmap='viridis')
+        #sc = ax.scatter(x[j], y[j], z[j], c=color, cmap='plasma', s=marker_size, alpha=0.5)
+        sc = ax.scatter(x[j], y[j], z[j], color=point_colour, s=marker_size, alpha=1)
+        
     # ax.set_xlim3d(-15, 15)
     # ax.set_ylim3d(0, 17)
     # ax.set_zlim3d(-16, 16)
@@ -66,17 +80,40 @@ def update(i):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    #ax.set_title(f'Frame {i+1}')
+    ax.xaxis.set_pane_color((0.992, 0.965, 0.890, 1.0))  
+    ax.yaxis.set_pane_color((0.992, 0.965, 0.890, 1.0))  
+    ax.zaxis.set_pane_color((0.992, 0.965, 0.890, 1.0))  
+
     ax.set_title("Radar Visualization (3D Scatter Plot)")
-    text_str = f'Points in frame: {len(x)} \n Frame: {frame_data["frame"]} \n TLV Type: {frame_data["TLV_type"]}'
+    text_str = (
+    f'Points in frame: {len(x)} \n'
+    f'Frame: {frame_data["frame"]} \n'
+    f'TLV Type: {frame_data["TLV_type"]} \n'
+    f'tid: {tid if tid else "None"}'
+    )
     ax.text(0.98, 0.02, 0.02, text_str, transform=ax.transAxes, fontsize=10, ha='right', va='bottom')
+    
 # Create the animation
 anim = animation.FuncAnimation(fig, update, frames=frames_to_run, interval=33, blit=False)
+is_paused = False
+def pause_resume(event):
+    global is_paused
+    if event.key == ' ':
+        is_paused = not is_paused
+        if is_paused:
+            anim.event_source.stop()
+        else:
+            anim.event_source.start()
 
+fig.canvas.mpl_connect('key_press_event', pause_resume)
 plt.show()
 
 # Save the animation
-def save_animation(animation_object, output_file, frame_rate=30):
+def save_animation(animation_object, output_file, frame_rate):
+    response = input("Do you want to save the animation? (y/n): ")
+    if response != 'y'.lower():
+        print("Exiting... Animation not saved.")
+        return
     if os.path.exists(output_file):
         response = input("File already exists. Do you want to overwrite it? (y/n): ")
         if response == 'y'.lower():
