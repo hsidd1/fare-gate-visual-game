@@ -1,9 +1,18 @@
 from Radar_frame import RadarFrame
 class RadarData:
-    # instantiate a RadarData object with data from two sensors held in lists for each key
-    def __init__(self, data):
-        # data is a list of dictionaries
-        # ex [{'sensorId': [1,2], 'x': [1,2], 'y': [1,2], 'z': [1,2], 'timestamp': [1,2]}, ...]
+    
+    def __init__(self, data: 'list[dict[str, int or float]]'):
+        """
+        Radar data object: contains all data from radar sensors in lists for each attribute. Updated when frames are processed by take_next_frame()
+        param data: a list of dictionaries 
+        ex. [{
+                'sensorId': 1, 
+                'x': 85.43406302787685, 
+                'y': 2069.789390083478, 
+                'z': 1473.3243136313272, 
+                'timestamp': 1663959820484
+            }, ...]
+        """
         self.sensorid = []
         self.x = []
         self.y = []
@@ -18,7 +27,14 @@ class RadarData:
         self.__time_elapsed = 0
         self.__initial_timestamp = None # set in set_initial_timestamp() to avoid overwriting after deletions in take_next_frame()
     
-    def set_initial_timestamp(self):
+    def __str__(self):
+        return f"""
+        RadarData object with: {self.get_num_sensors()} sensors, \n
+        {len(self.x)} points, \n
+        and {0 if not self.timestamp else self.timestamp[-1] - self.timestamp[0]} milliseconds of data \n
+        """
+    
+    def set_initial_timestamp(self) -> None:
         if self.__initial_timestamp is None:
             self.__initial_timestamp = self.timestamp[0]
 
@@ -34,19 +50,12 @@ class RadarData:
             return 2
         else:
             return 0
-
-    def __str__(self):
-        return f"""
-        RadarData object with: {self.get_num_sensors()} sensors, \n
-        {len(self.x)} points, \n
-        and {0 if not self.timestamp else self.timestamp[-1] - self.timestamp[0]} milliseconds of data \n
-        """
         
     def has_data(self) -> bool:
         return len(self.x) > 0
     
     # returns radar frame object for a specified interval
-    def take_next_frame(self, interval) -> RadarFrame:
+    def take_next_frame(self, interval: int) -> RadarFrame:
         self.set_initial_timestamp() # very first timestamp in data
         frame_last_ts = self.__initial_timestamp + self.__time_elapsed + interval
         self.__time_elapsed += interval
