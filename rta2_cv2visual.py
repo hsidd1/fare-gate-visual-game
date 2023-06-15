@@ -125,7 +125,7 @@ for i in data['frames']:
 print(radar_points[0:6])
 
                         # ------------------ VISUALIZATION ------------------ #
-from point_cloud import StatisPoints
+from point_cloud import StaticPoints
 
 
 # Access the values from the loaded configuration
@@ -157,8 +157,8 @@ print(f"Radar is set to be ahead of video by {rad_cam_offset}ms.")
 s1_pts = []
 s2_pts = []
 # static points
-s1_stat = StatisPoints(cnt_thres=5)
-s2_stat = StatisPoints(cnt_thres=5)
+s1_stat = StaticPoints(cnt_thres=5)
+s2_stat = StaticPoints(cnt_thres=5)
 # points in previous frame
 s1_pts_prev = []
 s2_pts_prev = []

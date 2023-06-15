@@ -1,4 +1,4 @@
-class StatisPoints:
+class StaticPoints:
     def __init__(self, cnt_thres=10):
         self.static_points = []
         self.static_points_count = []

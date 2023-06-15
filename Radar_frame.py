@@ -9,7 +9,8 @@ class RadarFrame:
                 'x': -280.35359191052436,
                 'y': 524.516705459526,
                 'z': 875.3924645059872,
-                'timestamp': 1663959822542
+                'timestamp': 1663959822542,
+                'isStatic: 0
             }, ...]
         """
         self.sensorid = []
