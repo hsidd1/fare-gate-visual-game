@@ -4,9 +4,12 @@
 *.mp4
 *.ipynb
 
-# an old version 
+# specific files 
 x_rta2_visual_cv2.py
+frametest.py
 
+format_tlv.py
+input.txt
 # PyCharm
 .idea/
 

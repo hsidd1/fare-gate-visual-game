@@ -122,10 +122,10 @@ for i in data['frames']:
         
         radar_points.append(s)
 
-#print(radar_points[0:6])
+print(radar_points[0:6])
 
                         # ------------------ VISUALIZATION ------------------ #
-from point_cloud import StatisPoints
+from point_cloud import StaticPoints
 
 
 # Access the values from the loaded configuration
@@ -157,8 +157,8 @@ print(f"Radar is set to be ahead of video by {rad_cam_offset}ms.")
 s1_pts = []
 s2_pts = []
 # static points
-s1_stat = StatisPoints(cnt_thres=5)
-s2_stat = StatisPoints(cnt_thres=5)
+s1_stat = StaticPoints(cnt_thres=5)
+s2_stat = StaticPoints(cnt_thres=5)
 # points in previous frame
 s1_pts_prev = []
 s2_pts_prev = []
@@ -219,6 +219,27 @@ def draw_gate_topleft():
     rect_end = (end_x, end_y)
     cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
 
+def display_video_info():
+    cv2.putText(frame, "Controls - 'q': quit  'p': pause", (width-175, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 150), 1)
+    cv2.putText(frame, f"end timestamp: {t_end}ms", (10, height-20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    text_str = f"Curr frame ts:{(t_rad-T_RAD_BEGIN)/1000:.3f}   Replay {1:.1f}x"
+    cv2.putText(frame, text_str, (10, height-40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # find timestamps of sensors
+    sensor1_timestamps = list(set([coord['timestamp'] for coord in s1_pts]))
+    text_str = f"s_entry ts:"
+    for i, timestamp in enumerate(sensor1_timestamps):
+        text_str += f" s1[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
+    cv2.putText(frame, text_str, (10, height-100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # find timestamps of sensors
+    sensor2_timestamps = list(set([coord['timestamp'] for coord in s2_pts]))
+    text_str = f"s_exit ts: "
+    for i, timestamp in enumerate(sensor2_timestamps):
+        text_str += f" s2[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
+    cv2.putText(frame, text_str, (10, height-80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # Draw info text
+    text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
+    cv2.putText(frame, text_str, (10, height-60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+
 all_increments = 0
 # main loop
 while True:
@@ -242,7 +263,8 @@ while True:
     # update height and width after rotation
     height = frame.shape[0]
     width = frame.shape[1]
-   
+    #frame = cv2.resize(frame, (round(width)//2, round(height)//2))   # reduce frame size
+
     if round(rad_cam_offset) < 0:
             # radar to wait for video
             rad_cam_offset += 1000 / 33
@@ -305,25 +327,7 @@ while True:
                 cv2.circle(frame, (x,y), 4, YELLOW, -1)
     
     draw_gate_topleft() # For 0, 0, 1 trackbar values
-    cv2.putText(frame, "Controls - 'q': quit  'p': pause", (width-175, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 150), 1)
-    cv2.putText(frame, f"end timestamp: {t_end}ms", (10, height-20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    text_str = f"Curr frame ts:{(t_rad-T_RAD_BEGIN)/1000:.3f}   Replay {1:.1f}x"
-    cv2.putText(frame, text_str, (10, height-40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # find timestamps of sensors
-    sensor1_timestamps = list(set([coord['timestamp'] for coord in s1_pts]))
-    text_str = f"s_entry ts:"
-    for i, timestamp in enumerate(sensor1_timestamps):
-        text_str += f" s1[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
-    cv2.putText(frame, text_str, (10, height-100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # find timestamps of sensors
-    sensor2_timestamps = list(set([coord['timestamp'] for coord in s2_pts]))
-    text_str = f"s_exit ts: "
-    for i, timestamp in enumerate(sensor2_timestamps):
-        text_str += f" s2[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
-    cv2.putText(frame, text_str, (10, height-80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # Draw info text
-    text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
-    cv2.putText(frame, text_str, (10, height-60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    display_video_info() 
     
     # after drawing points on frames, imshow the frames
     cv2.imshow('Radar Visualization', frame)
