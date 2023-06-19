@@ -2,7 +2,7 @@ import cv2
 import json
 import numpy as np
 import yaml
-
+from Radar_data import RadarData
 # Parsing sensor specific configuration from yaml file
 with open('sensor_config.yaml', 'r') as file:
     s_config = yaml.safe_load(file)
@@ -122,7 +122,9 @@ for i in data['frames']:
         
         radar_points.append(s)
 
-print(radar_points[0:6])
+#print(radar_points[0:6])
+radar_data = RadarData(radar_points)
+print(f"radar data initialized as {radar_data}")
 
                         # ------------------ VISUALIZATION ------------------ #
 from point_cloud import StaticPoints
@@ -174,6 +176,7 @@ print(f"Number of frames: {num_frames}")
 GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
 BLUE = (255, 0, 0)
+
 def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
@@ -342,18 +345,21 @@ while True:
 cap.release()
 cv2.destroyAllWindows()
 
-while True:
-    choice = input("Update final trackbar values in yaml? (y/n): ").lower()
-    if choice == 'y':
-        cv_config['TrackbarDefaults']['slider_xoffset'] = slider_xoffset
-        cv_config['TrackbarDefaults']['slider_yoffset'] = slider_yoffset
-        cv_config['TrackbarDefaults']['xy_trackbar_scale'] = xy_trackbar_scale
-        with open('cv-config.yaml', 'w') as file:
-            yaml.dump(cv_config, file)
-        print("Trackbar values updated in yaml.")
-        break
-    elif choice == 'n':
-        print("Trackbar values not updated in yaml.")
-        break
-    else:
-        print("Invalid input. Please enter 'y' or 'n'.")
+def yaml_update():
+    while True:
+        choice = input("Update final trackbar values in yaml? (y/n): ").lower()
+        if choice == 'y':
+            cv_config['TrackbarDefaults']['slider_xoffset'] = slider_xoffset
+            cv_config['TrackbarDefaults']['slider_yoffset'] = slider_yoffset
+            cv_config['TrackbarDefaults']['xy_trackbar_scale'] = xy_trackbar_scale
+            with open('cv-config.yaml', 'w') as file:
+                yaml.dump(cv_config, file)
+            print("Trackbar values updated in yaml.")
+            break
+        elif choice == 'n':
+            print("Trackbar values not updated in yaml.")
+            break
+        else:
+            print("Invalid input. Please enter 'y' or 'n'.")
+
+# yaml_update()

@@ -53,3 +53,11 @@ class RadarFrame:
             if id == sensor_id:
                 points_list.append((self.x[i], self.y[i], self.isStatic[i]))
         return points_list
+    
+    def set_static_points(self, points_list: list) -> None: # points list is a list of xy tuples
+        # find a match of (x,y) to self.x and self.y lists and update isStatic
+        for i, (x, y) in enumerate(zip(self.x, self.y)):
+            if (x,y) in points_list:
+                self.isStatic[i] = 1
+            else:
+                self.isStatic[i] = 0
