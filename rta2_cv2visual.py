@@ -278,58 +278,48 @@ while True:
         # take points in current RADAR frame
         radar_frame = radar_data.take_next_frame(interval=1)
         t_end = t_rad + 33    # ending timestamp, in ms
-        s1_pts = []
-        s2_pts = []
-        while radar_data.has_data():
-            if radar_data.timestamp[0] > t_end:
-                break
-            if radar_data.sensorid[0] == 1:
-                s1_pts.append({'x': radar_data.x[0], 'y': radar_data.y[0], 'timestamp': radar_data.timestamp[0]})
-            elif radar_data.sensorid[0] == 2:
-                s2_pts.append({'x': radar_data.x[0], 'y': radar_data.y[0], 'timestamp': radar_data.timestamp[0]})
-            else:
-                print("Error: sensorId not 1 or 2")
-            radar_data.sensorid.pop(0)
-            radar_data.x.pop(0)
-            radar_data.y.pop(0)
-            radar_data.z.pop(0)
-            radar_data.timestamp.pop(0)
-        t_rad = t_end
-    # if current frame contain points, use them. Otherwise, keep points from previous frame
-    s1.update([(coord['x'], coord['y']) for coord in s1_pts])
-    s2.update([(coord['x'], coord['y']) for coord in s2_pts])
+        if not radar_frame.is_empty(target_sensor_id=1):
+            s1.update(radar_frame.get_points_for_display(sensor_id=1))
+        if not radar_frame.is_empty(target_sensor_id=2):
+            s2.update(radar_frame.get_points_for_display(sensor_id=2))
 
-    # draw radar points, render static points as washed out color
-    if len(s1_pts) >= 1:
-        s1.update([(coord['x'], coord['y']) for coord in s1_pts])
-        for coord in s1_pts:
-            x = int((coord['x'] + offsetx) * scalemm2px)  
-            y = int((-coord['y'] + offsety) * scalemm2px)   # y axis is flipped 
+        # set static points
+        radar_frame.set_static_points(s1.get_static_points())
+        radar_frame.set_static_points(s2.get_static_points())
+
+        s1_points_for_display = radar_frame.get_points_for_display(sensor_id=1)
+        s2_points_for_display = radar_frame.get_points_for_display(sensor_id=2)
+        print(s1_points_for_display)
+        if len(s1_points_for_display) >= 1:
+            for i, coord in enumerate(s1_points_for_display):
+                print(coord)
+                x = int((coord[0] + offsetx) * scalemm2px)  
+                y = int((-coord[1] + offsety) * scalemm2px)   # y axis is flipped 
             
             # xy modifications from trackbar controls
             x = int(x * xy_trackbar_scale)
             y = int(y * xy_trackbar_scale)
             x += slider_xoffset
             y += slider_yoffset 
-            if (coord['x'], coord['y']) in s1.get_static_points():
+            if coord[2] == 1:
                 cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
             else:
                 cv2.circle(frame, (x,y), 4, GREEN, -1)
-    if len(s2_pts) >= 1:
-        s2.update([(coord['x'], coord['y']) for coord in s2_pts])
-        for coord in s2_pts:
-            x = int((coord['x'] + offsetx) * scalemm2px)   
-            y = int((-coord['y'] + offsety) * scalemm2px)   # y axis is flipped  
-            # xy modifications from trackbar controls
-            x = int(x * xy_trackbar_scale)
-            y = int(y * xy_trackbar_scale)
-            x += slider_xoffset
-            y += slider_yoffset
-            if (coord['x'], coord['y']) in s2.get_static_points():
-                cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
-            else:
-                cv2.circle(frame, (x,y), 4, YELLOW, -1)
-    
+            
+        if len(s2_points_for_display) >= 1:
+            for i, coord in enumerate(s2_points_for_display):
+                print(coord)
+                x = int((coord[0] + offsetx) * scalemm2px)   
+                y = int((-coord[1] + offsety) * scalemm2px)   # y axis is flipped  
+                # xy modifications from trackbar controls
+                x = int(x * xy_trackbar_scale)
+                y = int(y * xy_trackbar_scale)
+                x += slider_xoffset
+                y += slider_yoffset
+                if coord[2] == 1:
+                    cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
+                else:
+                    cv2.circle(frame, (x,y), 4, YELLOW, -1)
     draw_gate_topleft() # For 0, 0, 1 trackbar values
     display_video_info() 
     
