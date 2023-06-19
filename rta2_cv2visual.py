@@ -158,12 +158,7 @@ print(f"Radar is set to be ahead of video by {rad_cam_offset}ms.")
 # radar points buffer
 s1_pts = []
 s2_pts = []
-# static points
-s1_stat = StaticPoints(cnt_thres=5)
-s2_stat = StaticPoints(cnt_thres=5)
-# points in previous frame
-s1_pts_prev = []
-s2_pts_prev = []
+
 
 # video frame buffer
 frame_prev = None
@@ -243,30 +238,37 @@ def display_video_info():
     text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
     cv2.putText(frame, text_str, (10, height-60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
+s1 = StaticPoints(cnt_thres=1)
+s2 = StaticPoints(cnt_thres=1)
+
 all_increments = 0
 # main loop
 while True:
     # Account for radar camera synchronization
     incr = 1000/30   # increment, in ms
-    ts_start = radar_points[0]['timestamp'] # initial timestamp of radar points at start of program
+    ts_start = radar_data.timestamp[0] # initial timestamp of radar points at start of program
     while round(rad_cam_offset) > 0:
         all_increments += incr
-        while radar_points[0]['timestamp'] < ts_start + all_increments:
-            print(f"Point being removed at timestamp {radar_points[0]['timestamp']}")
-            radar_points.pop(0) # remove points that are before the current frame - should update ts_start
+        while radar_data.timestamp[0] < ts_start + all_increments:
+            print(f"Point being removed at timestamp {radar_data.timestamp[0]}")
+            getattr(radar_data, 'sensorid').pop(0)
+            getattr(radar_data, 'x').pop(0)
+            getattr(radar_data, 'y').pop(0)
+            getattr(radar_data, 'z').pop(0)
+            getattr(radar_data, 'timestamp').pop(0) # updates ts_start
         rad_cam_offset -= incr
         print(f"rad_cam_offset is now: {0 if rad_cam_offset < 1 else rad_cam_offset}")
-        t_rad = radar_points[0]['timestamp']   # update t_rad to the timestamp of the first point in the frame
+        t_rad = radar_data.timestamp[0]   # update t_rad to the timestamp of the first point in the frame
+
     ret, frame = cap.read()
     if not ret:
         break
+
     height, width = frame.shape[:2]
     frame = cv2.resize(frame, (round(width), round(height)))   # reduce frame size
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
     # update height and width after rotation
-    height = frame.shape[0]
-    width = frame.shape[1]
-    #frame = cv2.resize(frame, (round(width)//2, round(height)//2))   # reduce frame size
+    height, width = frame.shape[:2]
 
     if round(rad_cam_offset) < 0:
             # radar to wait for video
@@ -274,33 +276,32 @@ while True:
             print("radar to wait for video (rad_cam_offset < 0)") 
     else:
         # take points in current RADAR frame
+        radar_frame = radar_data.take_next_frame(interval=1)
         t_end = t_rad + 33    # ending timestamp, in ms
         s1_pts = []
         s2_pts = []
-        while len(radar_points) > 0:
-            if radar_points[0]['timestamp'] > t_end:
+        while radar_data.has_data():
+            if radar_data.timestamp[0] > t_end:
                 break
-            if radar_points[0]['sensorId'] == 1:
-                s1_pts.append(radar_points[0])
-            elif radar_points[0]['sensorId'] == 2:
-                s2_pts.append(radar_points[0])
+            if radar_data.sensorid[0] == 1:
+                s1_pts.append({'x': radar_data.x[0], 'y': radar_data.y[0], 'timestamp': radar_data.timestamp[0]})
+            elif radar_data.sensorid[0] == 2:
+                s2_pts.append({'x': radar_data.x[0], 'y': radar_data.y[0], 'timestamp': radar_data.timestamp[0]})
             else:
                 print("Error: sensorId not 1 or 2")
-            radar_points.pop(0)   # remove the point after taking it out.
+            radar_data.sensorid.pop(0)
+            radar_data.x.pop(0)
+            radar_data.y.pop(0)
+            radar_data.z.pop(0)
+            radar_data.timestamp.pop(0)
         t_rad = t_end
     # if current frame contain points, use them. Otherwise, keep points from previous frame
-    if len(s1_pts) == 0:
-        s1_pts = s1_pts_prev
-    else:
-        s1_pts_prev = s1_pts
-    if len(s2_pts) == 0:
-        s2_pts = s2_pts_prev
-    else:
-        s2_pts_prev = s2_pts
+    s1.update([(coord['x'], coord['y']) for coord in s1_pts])
+    s2.update([(coord['x'], coord['y']) for coord in s2_pts])
 
     # draw radar points, render static points as washed out color
     if len(s1_pts) >= 1:
-        s1_stat.update([(coord['x'], coord['y']) for coord in s1_pts])
+        s1.update([(coord['x'], coord['y']) for coord in s1_pts])
         for coord in s1_pts:
             x = int((coord['x'] + offsetx) * scalemm2px)  
             y = int((-coord['y'] + offsety) * scalemm2px)   # y axis is flipped 
@@ -310,12 +311,12 @@ while True:
             y = int(y * xy_trackbar_scale)
             x += slider_xoffset
             y += slider_yoffset 
-            if (coord['x'], coord['y']) in s1_stat.get_static_points():
+            if (coord['x'], coord['y']) in s1.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
             else:
                 cv2.circle(frame, (x,y), 4, GREEN, -1)
     if len(s2_pts) >= 1:
-        s2_stat.update([(coord['x'], coord['y']) for coord in s2_pts])
+        s2.update([(coord['x'], coord['y']) for coord in s2_pts])
         for coord in s2_pts:
             x = int((coord['x'] + offsetx) * scalemm2px)   
             y = int((-coord['y'] + offsety) * scalemm2px)   # y axis is flipped  
@@ -324,7 +325,7 @@ while True:
             y = int(y * xy_trackbar_scale)
             x += slider_xoffset
             y += slider_yoffset
-            if (coord['x'], coord['y']) in s2_stat.get_static_points():
+            if (coord['x'], coord['y']) in s2.get_static_points():
                 cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
             else:
                 cv2.circle(frame, (x,y), 4, YELLOW, -1)
