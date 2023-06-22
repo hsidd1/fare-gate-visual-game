@@ -1,4 +1,4 @@
-import serial
+# Parse and record data from radar device
 import time
 import numpy as np
 import pyqtgraph as pg

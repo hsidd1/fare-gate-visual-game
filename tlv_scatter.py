@@ -1,3 +1,5 @@
+# Single 3D scatter plot of radar data points (all frames)
+
 import json
 import matplotlib.pyplot as plt
 
