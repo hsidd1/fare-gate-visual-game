@@ -2,7 +2,7 @@ import cv2
 import json
 import numpy as np
 import yaml
-
+from Radar_data import RadarData
 # Parsing sensor specific configuration from yaml file
 with open('sensor_config.yaml', 'r') as file:
     s_config = yaml.safe_load(file)
@@ -122,7 +122,9 @@ for i in data['frames']:
         
         radar_points.append(s)
 
-print(radar_points[0:6])
+#print(radar_points[0:6])
+radar_data = RadarData(radar_points)
+print(f"radar data initialized as {radar_data}")
 
                         # ------------------ VISUALIZATION ------------------ #
 from point_cloud import StaticPoints
@@ -156,12 +158,6 @@ print(f"Radar is set to be ahead of video by {rad_cam_offset}ms.")
 # radar points buffer
 s1_pts = []
 s2_pts = []
-# static points
-s1_stat = StaticPoints(cnt_thres=5)
-s2_stat = StaticPoints(cnt_thres=5)
-# points in previous frame
-s1_pts_prev = []
-s2_pts_prev = []
 
 # video frame buffer
 frame_prev = None
@@ -174,6 +170,7 @@ print(f"Number of frames: {num_frames}")
 GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
 BLUE = (255, 0, 0)
+
 def washout(color, factor=0.2):
     # create washed out color
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
@@ -221,7 +218,7 @@ def draw_gate_topleft():
 
 def display_video_info():
     cv2.putText(frame, "Controls - 'q': quit  'p': pause", (width-175, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 150), 1)
-    cv2.putText(frame, f"end timestamp: {t_end}ms", (10, height-20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    cv2.putText(frame, f"end timestamp: t_end ms", (10, height-20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
     text_str = f"Curr frame ts:{(t_rad-T_RAD_BEGIN)/1000:.3f}   Replay {1:.1f}x"
     cv2.putText(frame, text_str, (10, height-40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
     # find timestamps of sensors
@@ -240,29 +237,41 @@ def display_video_info():
     text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
     cv2.putText(frame, text_str, (10, height-60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
-all_increments = 0
+s1_static = StaticPoints(cnt_thres=5)
+s2_static = StaticPoints(cnt_thres=5)
+
+# display existing points when no new points are available
+s1_display_points_prev = []
+s2_display_points_prev = []
+
+incr = 1000/30   # increment, in ms
 # main loop
 while True:
     # Account for radar camera synchronization
-    incr = 1000/30   # increment, in ms
-    ts_start = radar_points[0]['timestamp'] # initial timestamp of radar points at start of program
+    ts_start = radar_data.timestamp[0] # initial timestamp of radar points at start of program
+    all_increments = 0
     while round(rad_cam_offset) > 0:
         all_increments += incr
-        while radar_points[0]['timestamp'] < ts_start + all_increments:
-            print(f"Point being removed at timestamp {radar_points[0]['timestamp']}")
-            radar_points.pop(0) # remove points that are before the current frame - should update ts_start
+        while radar_data.timestamp[0] < ts_start + all_increments:
+            print(f"Point being removed at timestamp {radar_data.timestamp[0]}")
+            getattr(radar_data, 'sensorid').pop(0)
+            getattr(radar_data, 'x').pop(0)
+            getattr(radar_data, 'y').pop(0)
+            getattr(radar_data, 'z').pop(0)
+            getattr(radar_data, 'timestamp').pop(0) # updates ts_start
         rad_cam_offset -= incr
         print(f"rad_cam_offset is now: {0 if rad_cam_offset < 1 else rad_cam_offset}")
-        t_rad = radar_points[0]['timestamp']   # update t_rad to the timestamp of the first point in the frame
+        t_rad = radar_data.timestamp[0]   # update t_rad to the timestamp of the first point in the frame
+
     ret, frame = cap.read()
     if not ret:
         break
+
     height, width = frame.shape[:2]
     frame = cv2.resize(frame, (round(width), round(height)))   # reduce frame size
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)         
     # update height and width after rotation
-    height = frame.shape[0]
-    width = frame.shape[1]
+    height, width = frame.shape[:2]
     #frame = cv2.resize(frame, (round(width)//2, round(height)//2))   # reduce frame size
 
     if round(rad_cam_offset) < 0:
@@ -271,61 +280,62 @@ while True:
             print("radar to wait for video (rad_cam_offset < 0)") 
     else:
         # take points in current RADAR frame
-        t_end = t_rad + 33    # ending timestamp, in ms
-        s1_pts = []
-        s2_pts = []
-        while len(radar_points) > 0:
-            if radar_points[0]['timestamp'] > t_end:
-                break
-            if radar_points[0]['sensorId'] == 1:
-                s1_pts.append(radar_points[0])
-            elif radar_points[0]['sensorId'] == 2:
-                s2_pts.append(radar_points[0])
-            else:
-                print("Error: sensorId not 1 or 2")
-            radar_points.pop(0)   # remove the point after taking it out.
-        t_rad = t_end
-    # if current frame contain points, use them. Otherwise, keep points from previous frame
-    if len(s1_pts) == 0:
-        s1_pts = s1_pts_prev
-    else:
-        s1_pts_prev = s1_pts
-    if len(s2_pts) == 0:
-        s2_pts = s2_pts_prev
-    else:
-        s2_pts_prev = s2_pts
+        radar_frame = radar_data.take_next_frame(interval=incr)
 
-    # draw radar points, render static points as washed out color
-    if len(s1_pts) >= 1:
-        s1_stat.update([(coord['x'], coord['y']) for coord in s1_pts])
-        for coord in s1_pts:
-            x = int((coord['x'] + offsetx) * scalemm2px)  
-            y = int((-coord['y'] + offsety) * scalemm2px)   # y axis is flipped 
+        #
+        s1_display_points = []
+        s2_display_points = []
+        if not radar_frame.is_empty(target_sensor_id=1):
+            s1_static.update(radar_frame.get_points_for_display(sensor_id=1))
+            radar_frame.set_static_points(s1_static.get_static_points())
+            s1_display_points = radar_frame.get_points_for_display(sensor_id=1)
+
+        if not radar_frame.is_empty(target_sensor_id=2):
+            s2_static.update(radar_frame.get_points_for_display(sensor_id=2))
+            radar_frame.set_static_points(s2_static.get_static_points())
+            s2_display_points = radar_frame.get_points_for_display(sensor_id=2)
+
+        # 
+        if len(s1_display_points) == 0:
+            s1_display_points = s1_display_points_prev
+        else:
+            s1_display_points_prev = s1_display_points
+        if len(s2_display_points) == 0:
+            s2_display_points = s2_display_points_prev
+        else:
+            s2_display_points_prev = s2_display_points
+
+        print(f"data points for display s1:{len(s1_display_points)}, s2:{len(s2_display_points)}, static s1:{len(s1_static.get_static_points())}, s2:{len(s2_static.get_static_points())}")
+        if len(s1_display_points) >= 1:
+            for i, coord in enumerate(s1_display_points):
+                # print(coord)
+                x = int((coord[0] + offsetx) * scalemm2px)  
+                y = int((-coord[1] + offsety) * scalemm2px)   # y axis is flipped 
             
-            # xy modifications from trackbar controls
-            x = int(x * xy_trackbar_scale)
-            y = int(y * xy_trackbar_scale)
-            x += slider_xoffset
-            y += slider_yoffset 
-            if (coord['x'], coord['y']) in s1_stat.get_static_points():
-                cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
-            else:
-                cv2.circle(frame, (x,y), 4, GREEN, -1)
-    if len(s2_pts) >= 1:
-        s2_stat.update([(coord['x'], coord['y']) for coord in s2_pts])
-        for coord in s2_pts:
-            x = int((coord['x'] + offsetx) * scalemm2px)   
-            y = int((-coord['y'] + offsety) * scalemm2px)   # y axis is flipped  
-            # xy modifications from trackbar controls
-            x = int(x * xy_trackbar_scale)
-            y = int(y * xy_trackbar_scale)
-            x += slider_xoffset
-            y += slider_yoffset
-            if (coord['x'], coord['y']) in s2_stat.get_static_points():
-                cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
-            else:
-                cv2.circle(frame, (x,y), 4, YELLOW, -1)
-    
+                # xy modifications from trackbar controls
+                x = int(x * xy_trackbar_scale)
+                y = int(y * xy_trackbar_scale)
+                x += slider_xoffset
+                y += slider_yoffset 
+                if coord in s1_static.get_static_points():
+                    cv2.circle(frame, (x,y), 4, washout(GREEN), -1)
+                else:
+                    cv2.circle(frame, (x,y), 4, GREEN, -1)
+            
+        if len(s2_display_points) >= 1:
+            for i, coord in enumerate(s2_display_points):
+                # print(coord)
+                x = int((coord[0] + offsetx) * scalemm2px)   
+                y = int((-coord[1] + offsety) * scalemm2px)   # y axis is flipped  
+                # xy modifications from trackbar controls
+                x = int(x * xy_trackbar_scale)
+                y = int(y * xy_trackbar_scale)
+                x += slider_xoffset
+                y += slider_yoffset
+                if coord in s2_static.get_static_points():
+                    cv2.circle(frame, (x,y), 4, washout(YELLOW), -1)
+                else:
+                    cv2.circle(frame, (x,y), 4, YELLOW, -1)
     draw_gate_topleft() # For 0, 0, 1 trackbar values
     display_video_info() 
     
@@ -342,18 +352,21 @@ while True:
 cap.release()
 cv2.destroyAllWindows()
 
-while True:
-    choice = input("Update final trackbar values in yaml? (y/n): ").lower()
-    if choice == 'y':
-        cv_config['TrackbarDefaults']['slider_xoffset'] = slider_xoffset
-        cv_config['TrackbarDefaults']['slider_yoffset'] = slider_yoffset
-        cv_config['TrackbarDefaults']['xy_trackbar_scale'] = xy_trackbar_scale
-        with open('cv-config.yaml', 'w') as file:
-            yaml.dump(cv_config, file)
-        print("Trackbar values updated in yaml.")
-        break
-    elif choice == 'n':
-        print("Trackbar values not updated in yaml.")
-        break
-    else:
-        print("Invalid input. Please enter 'y' or 'n'.")
+def yaml_update():
+    while True:
+        choice = input("Update final trackbar values in yaml? (y/n): ").lower()
+        if choice == 'y':
+            cv_config['TrackbarDefaults']['slider_xoffset'] = slider_xoffset
+            cv_config['TrackbarDefaults']['slider_yoffset'] = slider_yoffset
+            cv_config['TrackbarDefaults']['xy_trackbar_scale'] = xy_trackbar_scale
+            with open('cv-config.yaml', 'w') as file:
+                yaml.dump(cv_config, file)
+            print("Trackbar values updated in yaml.")
+            break
+        elif choice == 'n':
+            print("Trackbar values not updated in yaml.")
+            break
+        else:
+            print("Invalid input. Please enter 'y' or 'n'.")
+
+# yaml_update()

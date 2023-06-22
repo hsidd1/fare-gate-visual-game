@@ -27,7 +27,7 @@ class RadarData:
         self.__time_elapsed = 0
         self.__initial_timestamp = None # set in set_initial_timestamp() to avoid overwriting after deletions in take_next_frame()
     
-    def __str__(self):
+    def __repr__(self):
         return f"""
         RadarData object with: {self.get_num_sensors()} sensors, \n
         {len(self.x)} points, \n

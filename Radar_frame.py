@@ -27,15 +27,11 @@ class RadarFrame:
             self.timestamp.append(item['timestamp'])
             self.isStatic.append(-1) # update in main program with static points class
     
-    def __str__(self): 
-        return f"""
-        RadarFrame object with: sensorid: {self.sensorid}, \n
-        x: {self.x}, \n
-        y: {self.y}, \n
-        z: {self.z}, \n
-        timestamp: {self.timestamp}, \n
-        is static: {self.isStatic}\n
-        """
+    def __repr__(self): 
+        class_str = f"RadarFrame object with {len(self.sensorid)} points."
+        if len(self.sensorid) > 0:
+            class_str += f" Sensor id: {set(self.sensorid)}, starting ts: {self.timestamp[0]}, ending ts: {self.timestamp[-1]}"
+        return class_str
    
     # check if a specified sensor is empty      
     def is_empty(self, target_sensor_id=None) -> bool:  
@@ -51,5 +47,14 @@ class RadarFrame:
         points_list = []
         for i, id in enumerate(self.sensorid):
             if id == sensor_id:
-                points_list.append((self.x[i], self.y[i], self.isStatic[i]))
+                points_list.append((self.x[i], self.y[i], self.z[i]))
         return points_list
+    
+    def set_static_points(self, points_list: list) -> None: # points list is a list of xy tuples
+        # find a match of (x,y) to self.x and self.y lists and update isStatic
+        for i, (x, y) in enumerate(zip(self.x, self.y)):
+            if (x,y) in points_list:
+                self.isStatic[i] = 1
+            else:
+                self.isStatic[i] = 0
+
