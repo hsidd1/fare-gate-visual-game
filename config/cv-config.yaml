@@ -1,6 +1,6 @@
 Files:
-  radar_data_file: 'Control_test1.json'
-  video_file: 'Controlled_test.avi'
+  radar_data_file: './data/Control_test1.json'
+  video_file: './data/Controlled_test.avi'
   
 TrackbarDefaults:
   slider_xoffset: 167

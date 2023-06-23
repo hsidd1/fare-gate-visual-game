@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import os 
 import matplotlib as mpl
 
-input_file = 'tlv_data_log.json'
+input_file = './data/tlv_data_log.json'
 # uncomment with raw string for file path to ffmpeg.exe in case of ffmpeg issues 
 #mpl.rcParams['animation.ffmpeg_path'] = r''
 
