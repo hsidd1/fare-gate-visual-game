@@ -4,7 +4,7 @@ import numpy as np
 import yaml
 from Radar_data import RadarData
 # Parsing sensor specific configuration from yaml file
-with open('sensor_config.yaml', 'r') as file:
+with open('config/sensor_config.yaml', 'r') as file:
     s_config = yaml.safe_load(file)
 
 # Access the values from the loaded configuration
@@ -61,7 +61,7 @@ def rot_mtx_exit(alpha, beta):
 s1_rotz_elliot, s1_rotx_elliot = rot_mtx_entry(alpha, beta)
 s2_rotz_elliot, s2_rotx_elliot = rot_mtx_exit(alpha, beta)
 
-with open('cv-config.yaml', 'r') as file:
+with open('config/cv-config.yaml', 'r') as file:
     cv_config = yaml.safe_load(file)
 # Opening JSON file
 radar_data_file = cv_config['Files']['radar_data_file']
