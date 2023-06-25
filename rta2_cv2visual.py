@@ -186,7 +186,7 @@ s1_display_points_prev = []
 s2_display_points_prev = []
 
 # frame interval, set to the same as video
-incr = 1000 / 30  # frame ts increment, in ms
+incr = 1000 / config["playback_fps"]  # frame ts increment, in ms
 
 # radar camera synchronization
 rad_cam_offset = rad_cam_offset - rad_cam_offset % (

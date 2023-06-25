@@ -12,6 +12,7 @@ TrackbarDefaults:
   slider_xoffset: 167
   slider_yoffset: 140
   xy_trackbar_scale: 0.5
-rad_cam_offset: 2300
+rad_cam_offset: 1500
+playback_fps: 27
 scalemm2px: 0.5
 wait_ms: 33
