@@ -1,3 +1,4 @@
+import os
 import cv2
 import json
 import yaml
@@ -8,6 +9,10 @@ from preprocess import load_data_sensorhost, rot_mtx_entry, rot_mtx_exit
 # load configuration
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
+
+# check if video file exists
+if not os.path.isfile(config["Files"]["video_file"]):
+    raise FileNotFoundError(f"Video file does not exist.")
 
 # load json data
 radar_data_file = config["Files"]["radar_data_file"]

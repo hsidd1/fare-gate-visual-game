@@ -13,11 +13,11 @@ This project uses the conda distribution of OpenCV 4.7.0:
 ```sh
 $ conda install -c conda-forge opencv
 ```
-
+W
 All other requirements can be installed via pip:
 ```sh
 $ pip install -r requirements.txt
 ```
 
 ## Required files
-- ```Controlled_test.avi```. Download from SharePoint: https://mcmasteru365.sharepoint.com/:v:/r/sites/RTA2SmartDevicesandSensors/Shared%20Documents/RTA%202.4%20Gate%20Profiles%20Fare%20Evasion%20Detector/YoloModelTests/Synchronized%20Data/Controlled_test.avi?csf=1&web=1&e=ZyYBb4
+- ```/data/Controlled_test.avi```. Download from SharePoint: https://mcmasteru365.sharepoint.com/:v:/r/sites/RTA2SmartDevicesandSensors/Shared%20Documents/RTA%202.4%20Gate%20Profiles%20Fare%20Evasion%20Detector/YoloModelTests/Synchronized%20Data/Controlled_test.avi?csf=1&web=1&e=ZyYBb4
