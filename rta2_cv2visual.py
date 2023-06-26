@@ -30,11 +30,11 @@ beta = config["SensorAngles"]["beta"]
 offsetx = config["SensorOffsets"]["offsetx"]
 offsety = config["SensorOffsets"]["offsety"]
 offsetz = config["SensorOffsets"]["offsetz"]
-print(f"alpha: {alpha}")
-print(f"beta: {beta}")
-print(f"offsetx: {offsetx}")
-print(f"offsety: {offsety}")
-print(f"offsetz: {offsetz}")
+print(f"{alpha = }")
+print(f"{beta = }")
+print(f"{offsetx = }")
+print(f"{offsety = }")
+print(f"{offsetz = }")
 s1_rotz, s1_rotx = rot_mtx_entry(alpha, beta)
 s2_rotz, s2_rotx = rot_mtx_exit(alpha, beta)
 
@@ -51,12 +51,12 @@ slider_xoffset = config["TrackbarDefaults"]["slider_xoffset"]
 slider_yoffset = config["TrackbarDefaults"]["slider_yoffset"]
 xy_trackbar_scale = config["TrackbarDefaults"]["xy_trackbar_scale"]
 
-print(f"rad_cam_offset: {rad_cam_offset}")
-print(f"scalemm2px: {scalemm2px}")
-print(f"wait_ms: {wait_ms}")
-print(f"slider_xoffset: {slider_xoffset}")
-print(f"slider_yoffset: {slider_yoffset}")
-print(f"xy_trackbar_scale: {xy_trackbar_scale}")
+print(f"{rad_cam_offset = }")
+print(f"{scalemm2px = }")
+print(f"{wait_ms = }")
+print(f"{slider_xoffset = }")
+print(f"{slider_yoffset = }")
+print(f"{xy_trackbar_scale = }")
 
 # ------------------ CV2 SUPPORT FUNCTIONS ------------------ #
 
@@ -71,26 +71,53 @@ def washout(color, factor=0.2):
     return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
 
 
-# Trackbar configuration
-def x_trackbar_callback(x):
+def x_trackbar_callback(*args):
     # updates global offsets by trackbar value
     global slider_xoffset
     slider_xoffset = cv2.getTrackbarPos("x offset", "Radar Visualization")
 
 
-def y_trackbar_callback(x):
+def y_trackbar_callback(*args):
     # updates global offsets by trackbar value
     global slider_yoffset
     slider_yoffset = cv2.getTrackbarPos("y offset", "Radar Visualization")
 
 
-def scale_callback(x):
+def scale_callback(*args):
     # multiplies x and y by scale value from trackbar
     global xy_trackbar_scale
     xy_trackbar_scale = cv2.getTrackbarPos("scale %", "Radar Visualization") / 100
 
 
+# draw gate at top left of window, with width and height of gate. 
+# Scale to match gate location with trackbar - returns valid display region
+def draw_gate_topleft():
+    # initial coords at top left corner (0,0)
+    rect_start = (
+        (slider_xoffset),
+        (slider_yoffset)
+    )
+    # rect end initial coords are based on the physical width and height of the gate
+    rect_end = (
+        (int(offsetx * 2 * scalemm2px * xy_trackbar_scale) + slider_xoffset), 
+        (int(offsety * 2 * scalemm2px * xy_trackbar_scale) + slider_yoffset)
+    )
+    cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
+    return rect_start, rect_end
+
+
+def draw_circle(rect_start, rect_end, coord, color):
+    # draw coord as circle on frame, if coord is within gate
+    if coord[0] < rect_start[0] or coord[0] > rect_end[0]:
+        return
+    if coord[1] < rect_start[1] or coord[1] > rect_end[1]:
+        return
+    cv2.circle(frame, (coord[0], coord[1]), 4, color, -1)
+
+
 def draw_radar_points(points, sensor_id):
+    remove_noise = config["remove_noise"]
+    rect_start, rect_end = draw_gate_topleft()
     if sensor_id == 1:
         color = GREEN
     elif sensor_id == 2:
@@ -109,31 +136,15 @@ def draw_radar_points(points, sensor_id):
         x += slider_xoffset
         y += slider_yoffset
         if static:
-            cv2.circle(frame, (x, y), 4, washout(color), -1)
+            if remove_noise:
+                draw_circle(rect_start, rect_end, (x, y), washout(color))
+            else:
+                cv2.circle(frame, (x, y), 4, washout(color), -1)
         else:
-            cv2.circle(frame, (x, y), 4, color, -1)
-
-
-# draw gate at top left of window, with width and height of gate. Scale to match gate location with trackbar
-def draw_gate_topleft():
-    # initially at top left corner
-    start_x = 0
-    start_y = 0
-    # modify start_x and start_y based on trackbar values
-    start_x = int(start_x * xy_trackbar_scale)
-    start_y = int(start_y * xy_trackbar_scale)
-    start_x += slider_xoffset
-    start_y += slider_yoffset
-    rect_start = (start_x, start_y)
-    # end_x and end_y are calculated based on the width and height of the gate
-    end_x = offsetx * 2 * scalemm2px
-    end_y = offsety * 2 * scalemm2px
-    # modify end_x and end_y based on trackbar values
-    end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
-    end_x += slider_xoffset
-    end_y += slider_yoffset
-    rect_end = (end_x, end_y)
-    cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
+            if remove_noise:
+                draw_circle(rect_start, rect_end, (x, y), color)
+            else:
+                cv2.circle(frame, (x, y), 4, color, -1)
 
 
 def display_video_info(radar_frame: RadarData, width, height):
@@ -173,10 +184,10 @@ print(f"Number of frames: {num_frames}")
 
 cv2.namedWindow("Radar Visualization")
 cv2.createTrackbar(
-    "x offset", "Radar Visualization", slider_xoffset, 2000, x_trackbar_callback
+    "x offset", "Radar Visualization", slider_xoffset, 600, x_trackbar_callback
 )
 cv2.createTrackbar(
-    "y offset", "Radar Visualization", slider_yoffset, 2000, y_trackbar_callback
+    "y offset", "Radar Visualization", slider_yoffset, 600, y_trackbar_callback
 )
 cv2.createTrackbar(
     "scale %", "Radar Visualization", int(xy_trackbar_scale * 100), 200, scale_callback
@@ -228,7 +239,6 @@ while round(rad_cam_offset) < 0:
 
 # main loop
 while True:
-    # Account for radar camera synchronization
     ret, frame = cap.read()
     if not ret:
         break
