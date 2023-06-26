@@ -90,30 +90,6 @@ def scale_callback(x):
     xy_trackbar_scale = cv2.getTrackbarPos("scale %", "Radar Visualization") / 100
 
 
-def draw_radar_points(points, sensor_id):
-    if sensor_id == 1:
-        color = GREEN
-    elif sensor_id == 2:
-        color = YELLOW
-    else:
-        raise
-    for coord in points:
-        x = int((coord[0] + offsetx) * scalemm2px)
-        y = int((-coord[1] + offsety) * scalemm2px)  # y axis is flipped
-        z = int(coord[2] * scalemm2px)  # z is not used
-        static = coord[3]
-
-        # xy modifications from trackbar controls
-        x = int(x * xy_trackbar_scale)
-        y = int(y * xy_trackbar_scale)
-        x += slider_xoffset
-        y += slider_yoffset
-        if static:
-            cv2.circle(frame, (x, y), 4, washout(color), -1)
-        else:
-            cv2.circle(frame, (x, y), 4, color, -1)
-
-
 # draw gate at top left of window, with width and height of gate. Scale to match gate location with trackbar
 def draw_gate_topleft():
     # initially at top left corner
@@ -134,6 +110,41 @@ def draw_gate_topleft():
     end_y += slider_yoffset
     rect_end = (end_x, end_y)
     cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
+    return rect_start, rect_end
+
+
+def draw_circle(rect_start, rect_end, coord, color):
+    # draw coord as circle on frame, if coord is within gate
+    if coord[0] < rect_start[0] or coord[0] > rect_end[0]:
+        return
+    if coord[1] < rect_start[1] or coord[1] > rect_end[1]:
+        return
+    cv2.circle(frame, (coord[0], coord[1]), 4, color, -1)
+
+
+def draw_radar_points(points, sensor_id):
+    rect_start, rect_end = draw_gate_topleft()
+    if sensor_id == 1:
+        color = GREEN
+    elif sensor_id == 2:
+        color = YELLOW
+    else:
+        raise
+    for coord in points:
+        x = int((coord[0] + offsetx) * scalemm2px)
+        y = int((-coord[1] + offsety) * scalemm2px)  # y axis is flipped
+        z = int(coord[2] * scalemm2px)  # z is not used
+        static = coord[3]
+
+        # xy modifications from trackbar controls
+        x = int(x * xy_trackbar_scale)
+        y = int(y * xy_trackbar_scale)
+        x += slider_xoffset
+        y += slider_yoffset
+        if static:
+            draw_circle(rect_start, rect_end, (x, y), washout(color))
+        else:
+            draw_circle(rect_start, rect_end, (x, y), color)
 
 
 def display_video_info(radar_frame: RadarData, width, height):
