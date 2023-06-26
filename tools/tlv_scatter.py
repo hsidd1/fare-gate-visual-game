@@ -3,7 +3,7 @@
 import json
 import matplotlib.pyplot as plt
 
-input_file = 'tlv_data_log.json'
+input_file = './data/tlv_data_log.json'
 with open(input_file, 'r') as file:
     data = json.load(file)
 
