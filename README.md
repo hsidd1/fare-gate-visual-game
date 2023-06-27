@@ -13,7 +13,7 @@ This project uses the conda distribution of OpenCV 4.7.0:
 ```sh
 $ conda install -c conda-forge opencv
 ```
-W
+
 All other requirements can be installed via pip:
 ```sh
 $ pip install -r requirements.txt
