@@ -52,6 +52,14 @@ class RadarFrame:
                 points_list.append((self.x[i], self.y[i], self.z[i], self.is_static[i]))
         return points_list
 
+    def points_for_clustering(self) -> list:
+        points_list = []
+        for i, status in enumerate(self.is_static):
+            if status == 0: # if point is not static
+                # points_list.append((self.x[i], self.y[i], self.z[i]))
+                points_list.append((self.x[i], self.y[i], 0)) # flatten z value
+        return points_list
+
     def get_xyz_coord(self, sensor_id) -> list:
         points_list = []
         for i, id in enumerate(self.sid):
