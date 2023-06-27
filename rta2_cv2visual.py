@@ -296,11 +296,10 @@ while True:
                             centroids[clusterIdx]['y'] = centroids[clusterIdx]['y'] + s1_s2_combined[labelIdx][1]  # Y
                             centroids[clusterIdx]['z'] = centroids[clusterIdx]['z'] + s1_s2_combined[labelIdx][2]  # Z
                             centroids[clusterIdx]['numPoints'] = centroids[clusterIdx]['numPoints'] + 1  # store the count to divide later
-                    # Compute the centroid of the cluster, store the number of points and snr to pass to the state machine
+                    # Compute the centroid of the cluster, store the number of points
                     centroids[clusterIdx]['x'] = centroids[clusterIdx]['x'] / centroids[clusterIdx]['numPoints']
                     centroids[clusterIdx]['y'] = centroids[clusterIdx]['y'] / centroids[clusterIdx]['numPoints']
                     centroids[clusterIdx]['z'] = centroids[clusterIdx]['z'] / centroids[clusterIdx]['numPoints']
-                    # Pass clusters into state machine
                     print(centroids)
                     draw_clustered_points(centroids, clusterIdx)
 
