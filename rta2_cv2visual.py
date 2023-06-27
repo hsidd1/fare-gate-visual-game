@@ -65,6 +65,7 @@ print(f"xy_trackbar_scale: {xy_trackbar_scale}")
 GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
 BLUE = (255, 0, 0)
+RED = (0, 0, 255)
 
 
 def washout(color, factor=0.2):
@@ -114,8 +115,9 @@ def draw_radar_points(points, sensor_id):
         else:
             cv2.circle(frame, (x, y), 4, color, -1)
 
+
 def draw_clustered_points(centroids, clusterIdx):
-    color = BLUE
+    color = RED
     x = int((int(centroids[clusterIdx]['x'] + offsetx) * scalemm2px))
     y = int((int(-centroids[clusterIdx]['y'] + offsety) * scalemm2px))  # y axis is flipped
     # z = int(coord[2] * scalemm2px)  # z is not used
@@ -283,7 +285,8 @@ while True:
     if not radar_frame.is_empty(target_sensor_id=1) or not radar_frame.is_empty(target_sensor_id=2):
         s1_s2_combined = radar_frame.points_for_clustering()
         if len(s1_s2_combined) > 1:
-            cluster_obj = DBSCAN(eps=700, min_samples=5, metric="euclidean", n_jobs=-1).fit(s1_s2_combined) # eps is trial and error val
+            cluster_obj = DBSCAN(eps=700, min_samples=5, metric="euclidean", n_jobs=-1).fit(
+                s1_s2_combined)  # eps is trial and error val
             clusters = set(cluster_obj.labels_)  # Set of labels (no repeats)
             pointLabels = cluster_obj.labels_  # List of labels by points (with repeated labels)
             centroids = []
@@ -295,7 +298,8 @@ while True:
                             centroids[clusterIdx]['x'] = centroids[clusterIdx]['x'] + s1_s2_combined[labelIdx][0]  # X
                             centroids[clusterIdx]['y'] = centroids[clusterIdx]['y'] + s1_s2_combined[labelIdx][1]  # Y
                             centroids[clusterIdx]['z'] = centroids[clusterIdx]['z'] + s1_s2_combined[labelIdx][2]  # Z
-                            centroids[clusterIdx]['numPoints'] = centroids[clusterIdx]['numPoints'] + 1  # store the count to divide later
+                            centroids[clusterIdx]['numPoints'] = centroids[clusterIdx][
+                                                                     'numPoints'] + 1  # store the count to divide later
                     # Compute the centroid of the cluster, store the number of points
                     centroids[clusterIdx]['x'] = centroids[clusterIdx]['x'] / centroids[clusterIdx]['numPoints']
                     centroids[clusterIdx]['y'] = centroids[clusterIdx]['y'] / centroids[clusterIdx]['numPoints']
