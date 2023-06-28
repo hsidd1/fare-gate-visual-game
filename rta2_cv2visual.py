@@ -117,9 +117,20 @@ def draw_circle(rect_start, rect_end, coord, color):
     cv2.circle(frame, (coord[0], coord[1]), 4, color, -1)
 
 
+def remove_points_outside_gate(points, rect_start, rect_end):
+    """Remove points that are outside the gate area. 
+    TODO: Not working, probably related to rect_start, rect_end. Hamza to investigate"""
+    points_in_gate = []
+    for coord in points:
+        if coord[0] < rect_start[0] or coord[0] > rect_end[0]:
+            continue
+        if coord[1] < rect_start[1] or coord[1] > rect_end[1]:
+            continue
+        points_in_gate.append(coord)
+    return points_in_gate
+
+
 def draw_radar_points(points, sensor_id):
-    remove_noise = config["remove_noise"]
-    rect_start, rect_end = draw_gate_topleft()
     if sensor_id == 1:
         color = GREEN
     elif sensor_id == 2:
@@ -138,17 +149,9 @@ def draw_radar_points(points, sensor_id):
         x += slider_xoffset
         y += slider_yoffset
         if static:
-            if remove_noise:
-                draw_circle(rect_start, rect_end, (x, y), washout(color))
-                # pass
-            else:
-                cv2.circle(frame, (x, y), 4, washout(color), -1)
+            cv2.circle(frame, (x, y), 4, washout(color), -1)
         else:
-            if remove_noise:
-                draw_circle(rect_start, rect_end, (x, y), color)
-                # pass
-            else:
-                cv2.circle(frame, (x, y), 4, color, -1)
+            cv2.circle(frame, (x, y), 4, color, -1)
 
 
 def draw_clustered_points(processed_centroids, color=RED):
@@ -276,6 +279,9 @@ while True:
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
     height, width = frame.shape[:2]
 
+    # draw gate area and get gate area coordinates
+    gate_tl, gate_br = draw_gate_topleft()
+
     # take points in current RADAR frame
     radar_frame = radar_data.take_next_frame(interval=incr)
 
@@ -291,6 +297,11 @@ while True:
         s2_static.update(radar_frame.get_xyz_coord(sensor_id=2))
         radar_frame.set_static_points(s2_static.get_static_points())
         s2_display_points = radar_frame.get_points_for_display(sensor_id=2)
+
+    # remove points that are out of gate area, if configured
+    if config["remove_noise"]:
+        s1_display_points = remove_points_outside_gate(s1_display_points, gate_tl, gate_br)
+        s2_display_points = remove_points_outside_gate(s2_display_points, gate_tl, gate_br)
 
     # retain previous frame if no new points
     if len(s1_display_points) == 0:
@@ -324,7 +335,6 @@ while True:
     if len(s2_display_points) >= 1:
         draw_radar_points(s2_display_points, sensor_id=2)
 
-    draw_gate_topleft()
     display_video_info(radar_frame, width, height)
     display_control_info()
 
