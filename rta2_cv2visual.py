@@ -294,24 +294,21 @@ while True:
     else:
         s2_display_points_prev = s2_display_points
 
-    s1_s2_combined = [(*values[:-1],) for values in s1_display_points + s2_display_points]
-
-    # get non-static points into a single list & cluster
-    if not radar_frame.is_empty(target_sensor_id=1) or not radar_frame.is_empty(target_sensor_id=2):
-        # s1_s2_combined = radar_frame.points_for_clustering() # needs updating
-        if len(s1_s2_combined) > 1:
-            processor = ClusterProcessor(eps=250, min_samples=4)  # default: eps=400, min_samples=5 --> eps is in mm
-            centroids, cluster_point_cloud = processor.cluster_points(s1_s2_combined)  # get the centroids of each
-            # cluster and their associated point cloud
-            draw_clustered_points(centroids)  # may not be in the abs center of bbox --> "center of mass", not area
-            # centroid btw.
-            draw_clustered_points(cluster_point_cloud, color=BLUE)  # highlight the points that belong to the detected
-            # obj
-            for i in enumerate(centroids):
-                x1, y1, x2, y2 = cluster_bbox(cluster_point_cloud, i[0])
-                object_size, object_height = obj_height(cluster_point_cloud, i[0])
-                # display bboxes --> convert from mm to pxl pls :)
-                print(str(object_height) + " mm")
+    # get all non-static points and cluster
+    s1_s2_combined = [values[:-1] for values in s1_display_points + s2_display_points if values[-1] == 0]
+    if len(s1_s2_combined) > 1:
+        processor = ClusterProcessor(eps=250, min_samples=4)  # default: eps=400, min_samples=5 --> eps is in mm
+        centroids, cluster_point_cloud = processor.cluster_points(s1_s2_combined)  # get the centroids of each
+        # cluster and their associated point cloud
+        draw_clustered_points(centroids)  # may not be in the abs center of bbox --> "center of mass", not area
+        # centroid btw.
+        draw_clustered_points(cluster_point_cloud, color=BLUE)  # highlight the points that belong to the detected
+        # obj
+        for i in enumerate(centroids):
+            x1, y1, x2, y2 = cluster_bbox(cluster_point_cloud, i[0])
+            object_size, object_height = obj_height(cluster_point_cloud, i[0])
+            # display bboxes --> convert from mm to pxl pls :)
+            print(str(object_height) + " mm")
 
     # draw points on frame
     if len(s1_display_points) >= 1:
