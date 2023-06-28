@@ -193,6 +193,14 @@ def display_video_info(radar_frame: RadarData, width, height):
     text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
     cv2.putText(frame, text_str, (10, height - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
+def display_control_info():
+    cv2.putText(
+        frame, 
+        "Controls - 'q': quit  'p': pause", 
+        (width-175, 20), 
+        cv2.FONT_HERSHEY_SIMPLEX, 
+        0.35, (0, 0, 150), 1
+        )
 
 # ------------------ VISUALIZATION ------------------ #
 
@@ -318,6 +326,7 @@ while True:
 
     draw_gate_topleft()
     display_video_info(radar_frame, width, height)
+    display_control_info()
 
     # after drawing points on frames, imshow the frames
     cv2.imshow("Radar Visualization", frame)
