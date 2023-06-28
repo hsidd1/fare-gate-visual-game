@@ -4,7 +4,7 @@ import json
 import yaml
 from radar_points import RadarData, StaticPoints
 from preprocess import load_data_sensorhost, rot_mtx_entry, rot_mtx_exit
-from sklearn.cluster import DBSCAN
+from radar_clustering import *
 
 # ------------------ DATA PREPROCESS ------------------ #
 # load configuration
@@ -140,50 +140,30 @@ def draw_radar_points(points, sensor_id):
         if static:
             if remove_noise:
                 draw_circle(rect_start, rect_end, (x, y), washout(color))
+                # pass
             else:
                 cv2.circle(frame, (x, y), 4, washout(color), -1)
         else:
             if remove_noise:
                 draw_circle(rect_start, rect_end, (x, y), color)
+                # pass
             else:
                 cv2.circle(frame, (x, y), 4, color, -1)
 
 
-def draw_clustered_points(centroids, clusterIdx):
-    color = RED
-    x = int((int(centroids[clusterIdx]['x'] + offsetx) * scalemm2px))
-    y = int((int(-centroids[clusterIdx]['y'] + offsety) * scalemm2px))  # y axis is flipped
-    # z = int(coord[2] * scalemm2px)  # z is not used
-    # static = coord[3]
+def draw_clustered_points(processed_centroids, color=RED):
+    for cluster in processed_centroids:
+        x = int((int(cluster['x'] + offsetx) * scalemm2px))
+        y = int((int(-cluster['y'] + offsety) * scalemm2px))  # y axis is flipped
+        # z = int(coord[2] * scalemm2px)  # z is not used
+        # static = coord[3]
 
-    # xy modifications from trackbar controls
-    x = int(x * xy_trackbar_scale)
-    y = int(y * xy_trackbar_scale)
-    x += slider_xoffset
-    y += slider_yoffset
-    cv2.circle(frame, (x, y), 10, color, -1)
-
-
-# draw gate at top left of window, with width and height of gate. Scale to match gate location with trackbar
-def draw_gate_topleft():
-    # initially at top left corner
-    start_x = 0
-    start_y = 0
-    # modify start_x and start_y based on trackbar values
-    start_x = int(start_x * xy_trackbar_scale)
-    start_y = int(start_y * xy_trackbar_scale)
-    start_x += slider_xoffset
-    start_y += slider_yoffset
-    rect_start = (start_x, start_y)
-    # end_x and end_y are calculated based on the width and height of the gate
-    end_x = offsetx * 2 * scalemm2px
-    end_y = offsety * 2 * scalemm2px
-    # modify end_x and end_y based on trackbar values
-    end_x, end_y = int(end_x * xy_trackbar_scale), int(end_y * xy_trackbar_scale)
-    end_x += slider_xoffset
-    end_y += slider_yoffset
-    rect_end = (end_x, end_y)
-    cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
+        # xy modifications from trackbar controls
+        x = int(x * xy_trackbar_scale)
+        y = int(y * xy_trackbar_scale)
+        x += slider_xoffset
+        y += slider_yoffset
+        cv2.circle(frame, (x, y), 10, color, -1)
 
 
 def display_video_info(radar_frame: RadarData, width, height):
@@ -194,24 +174,25 @@ def display_video_info(radar_frame: RadarData, width, height):
     T_RAD_BEGIN = 0
     TS_OFFSET = 2.3
 
-    cv2.putText(frame, f"end timestamp: t_end ms", (10, height-20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    text_str = f"Curr frame ts:{(t_rad-T_RAD_BEGIN)/1000:.3f}   Replay {1:.1f}x"
-    cv2.putText(frame, text_str, (10, height-40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    cv2.putText(frame, f"end timestamp: t_end ms", (10, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    text_str = f"Curr frame ts:{(t_rad - T_RAD_BEGIN) / 1000:.3f}   Replay {1:.1f}x"
+    cv2.putText(frame, text_str, (10, height - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
     # find timestamps of sensors
     sensor1_timestamps = list(set([coord["timestamp"] for coord in s1_pts]))
     text_str = f"s_entry ts:"
     for i, timestamp in enumerate(sensor1_timestamps):
-        text_str += f" s1[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
-    cv2.putText(frame, text_str, (10, height-100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+        text_str += f" s1[{i}]: {(timestamp - TS_OFFSET) / 1000:.3f}"
+    cv2.putText(frame, text_str, (10, height - 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
     # find timestamps of sensors
     sensor2_timestamps = list(set([coord["timestamp"] for coord in s2_pts]))
     text_str = f"s_exit ts: "
     for i, timestamp in enumerate(sensor2_timestamps):
-        text_str += f" s2[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
-    cv2.putText(frame, text_str, (10, height-80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+        text_str += f" s2[{i}]: {(timestamp - TS_OFFSET) / 1000:.3f}"
+    cv2.putText(frame, text_str, (10, height - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
     # Draw info text
     text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
-    cv2.putText(frame, text_str, (10, height-60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    cv2.putText(frame, text_str, (10, height - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+
 
 # ------------------ VISUALIZATION ------------------ #
 
@@ -313,31 +294,24 @@ while True:
     else:
         s2_display_points_prev = s2_display_points
 
+    s1_s2_combined = [(*values[:-1],) for values in s1_display_points + s2_display_points]
+
     # get non-static points into a single list & cluster
     if not radar_frame.is_empty(target_sensor_id=1) or not radar_frame.is_empty(target_sensor_id=2):
-        s1_s2_combined = radar_frame.points_for_clustering()
+        # s1_s2_combined = radar_frame.points_for_clustering() # needs updating
         if len(s1_s2_combined) > 1:
-            cluster_obj = DBSCAN(eps=700, min_samples=5, metric="euclidean", n_jobs=-1).fit(
-                s1_s2_combined)  # eps is trial and error val
-            clusters = set(cluster_obj.labels_)  # Set of labels (no repeats)
-            pointLabels = cluster_obj.labels_  # List of labels by points (with repeated labels)
-            centroids = []
-            for clusterIdx, cluster in enumerate(clusters):  # No repeats in a cluster
-                if (cluster >= 0):  # Discard the -1 cluster which is the unassociated points
-                    centroids.append({'x': 0, 'y': 0, 'z': 0, 'numPoints': 0})
-                    for labelIdx, label in enumerate(pointLabels):
-                        if (label == cluster):
-                            centroids[clusterIdx]['x'] = centroids[clusterIdx]['x'] + s1_s2_combined[labelIdx][0]  # X
-                            centroids[clusterIdx]['y'] = centroids[clusterIdx]['y'] + s1_s2_combined[labelIdx][1]  # Y
-                            centroids[clusterIdx]['z'] = centroids[clusterIdx]['z'] + s1_s2_combined[labelIdx][2]  # Z
-                            centroids[clusterIdx]['numPoints'] = centroids[clusterIdx][
-                                                                     'numPoints'] + 1  # store the count to divide later
-                    # Compute the centroid of the cluster, store the number of points
-                    centroids[clusterIdx]['x'] = centroids[clusterIdx]['x'] / centroids[clusterIdx]['numPoints']
-                    centroids[clusterIdx]['y'] = centroids[clusterIdx]['y'] / centroids[clusterIdx]['numPoints']
-                    centroids[clusterIdx]['z'] = centroids[clusterIdx]['z'] / centroids[clusterIdx]['numPoints']
-                    print(centroids)
-                    draw_clustered_points(centroids, clusterIdx)
+            processor = ClusterProcessor(eps=250, min_samples=4)  # default: eps=400, min_samples=5 --> eps is in mm
+            centroids, cluster_point_cloud = processor.cluster_points(s1_s2_combined)  # get the centroids of each
+            # cluster and their associated point cloud
+            draw_clustered_points(centroids)  # may not be in the abs center of bbox --> "center of mass", not area
+            # centroid btw.
+            draw_clustered_points(cluster_point_cloud, color=BLUE)  # highlight the points that belong to the detected
+            # obj
+            for i in enumerate(centroids):
+                x1, y1, x2, y2 = cluster_bbox(cluster_point_cloud, i[0])
+                object_size, object_height = obj_height(cluster_point_cloud, i[0])
+                # display bboxes --> convert from mm to pxl pls :)
+                print(str(object_height) + " mm")
 
     # draw points on frame
     if len(s1_display_points) >= 1:
@@ -361,6 +335,7 @@ while True:
 cap.release()
 cv2.destroyAllWindows()
 
+
 # ------------------ SAVE CONFIG ------------------ #
 def yaml_update():
     while True:
@@ -378,6 +353,5 @@ def yaml_update():
             break
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
-
 
 # yaml_update()
