@@ -108,15 +108,6 @@ def draw_gate_topleft():
     cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
     return rect_start, rect_end
 
-#TODO: remove this - implemented in remove_points_outside_gate
-def draw_circle(rect_start, rect_end, coord, color):
-    # draw coord as circle on frame, if coord is within gate
-    if coord[0] < rect_start[0] or coord[0] > rect_end[0]:
-        return
-    if coord[1] < rect_start[1] or coord[1] > rect_end[1]:
-        return
-    cv2.circle(frame, (coord[0], coord[1]), 4, color, -1)
-
 
 def remove_points_outside_gate(points, rect_start, rect_end) -> list:
     """Remove points that are outside the gate area. 
@@ -187,14 +178,7 @@ def draw_bbox(centroids, cluster_point_cloud):
         rect = cv2.rectangle(frame, (x1, y1), (x2, y2), ORANGE, 1)
         size, _ = cv2.getTextSize(f"{object_height:.1f} mm", cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
         text_width, text_height = size
-        # print(f"TEXT {text_width = }, {text_height = }")
-        # text_x = (x1 + x2) // 2 - text_width // 2
-        # text_y = y1 - text_height - 5
-
         cv2.putText(rect, f"{object_height:.1f} mm", (x1, y1 - text_height - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, ORANGE, 2)
-        #cv2.putText(frame, f"{object_height:.1f} mm", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, RED, 2)
-        # print(str(object_height) + " mm")
-        # print(f"{object_height:.1f} mm")
 
 def display_video_info(radar_frame: RadarData, width, height):
     """Display video info on frame. width and height are the dimensions of the window."""
@@ -297,7 +281,6 @@ while round(rad_cam_offset) < 0:
 
 # main loop
 while True:
-    # Account for radar camera synchronization
     ret, frame = cap.read()
     if not ret:
         break
@@ -327,22 +310,15 @@ while True:
 
     # remove points that are out of gate area, if configured
     if config["remove_noise"]:
-        # for i, point in enumerate(s1_display_points):
-        #    if point[0] < gate_tl[0] or point[0] > gate_br[0] or point[1] < gate_tl[1] or point[1] > gate_br[1]:
-        #         s1_display_points.pop(i)
-        # for i, point in enumerate(s2_display_points):
-        #       if point[0] < gate_tl[0] or point[0] > gate_br[0] or point[1] < gate_tl[1] or point[1] > gate_br[1]:
-        #          s2_display_points.pop(i)
         s1_display_points = remove_points_outside_gate(s1_display_points, gate_tl, gate_br)
         s2_display_points = remove_points_outside_gate(s2_display_points, gate_tl, gate_br)
-        # new_point_remove(s1_display_points)
-        # new_point_remove(s2_display_points)
+        
     # retain previous frame if no new points
-    if len(s1_display_points) == 0:
+    if not s1_display_points:
         s1_display_points = s1_display_points_prev
     else:
         s1_display_points_prev = s1_display_points
-    if len(s2_display_points) == 0:
+    if not s2_display_points:
         s2_display_points = s2_display_points_prev
     else:
         s2_display_points_prev = s2_display_points
@@ -354,15 +330,15 @@ while True:
         centroids, cluster_point_cloud = processor.cluster_points(s1_s2_combined)  # get the centroids of each
         # cluster and their associated point cloud
         draw_clustered_points(centroids)  # may not be in the abs center of bbox --> "center of mass", not area
-        # centroid btw.
+        # centroid.
         draw_clustered_points(cluster_point_cloud, color=BLUE)  # highlight the points that belong to the detected
         # obj
         draw_bbox(centroids, cluster_point_cloud)  # draw the bounding box of each cluster
 
     # draw points on frame
-    if len(s1_display_points) >= 1:
+    if s1_display_points:
         draw_radar_points(s1_display_points, sensor_id=1)
-    if len(s2_display_points) >= 1:
+    if s2_display_points:
         draw_radar_points(s2_display_points, sensor_id=2)
 
     display_video_info(radar_frame, width, height)
