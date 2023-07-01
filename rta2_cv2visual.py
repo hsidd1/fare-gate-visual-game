@@ -23,6 +23,7 @@ with open(radar_data_file) as json_file:
 # use sensorhost format
 radar_data = load_data_sensorhost(data)  # Original coordinates
 print(f"Radar data loaded.\n{radar_data}\n")
+TOTAL_DATA_S = (radar_data.ts[-1] - radar_data.ts[0])/1000 # total seconds of data, before removing points
 
 # Apply transformation
 alpha = config["SensorAngles"]["alpha"]
@@ -180,39 +181,89 @@ def draw_bbox(centroids, cluster_point_cloud):
         text_width, text_height = size
         cv2.putText(rect, f"{object_height:.1f} mm", (x1, y1 - text_height - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, ORANGE, 2)
 
-def display_video_info(radar_frame: RadarData, width, height):
+def display_frame_info(radar_frame: RadarData, width, height):
     """Display video info on frame. width and height are the dimensions of the window."""
-    # TODO: this part is broken. Need to revise.
-    s1_pts = []
-    s2_pts = []
-    T_RAD_BEGIN = 0
-    TS_OFFSET = 2.3
-
-    cv2.putText(frame, f"end timestamp: t_end ms", (10, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    text_str = f"Curr frame ts:{(t_rad - T_RAD_BEGIN) / 1000:.3f}   Replay {1:.1f}x"
-    cv2.putText(frame, text_str, (10, height - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # find timestamps of sensors
-    sensor1_timestamps = list(set([coord["timestamp"] for coord in s1_pts]))
-    text_str = f"s_entry ts:"
-    for i, timestamp in enumerate(sensor1_timestamps):
-        text_str += f" s1[{i}]: {(timestamp - TS_OFFSET) / 1000:.3f}"
-    cv2.putText(frame, text_str, (10, height - 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # find timestamps of sensors
-    sensor2_timestamps = list(set([coord["timestamp"] for coord in s2_pts]))
-    text_str = f"s_exit ts: "
-    for i, timestamp in enumerate(sensor2_timestamps):
-        text_str += f" s2[{i}]: {(timestamp - TS_OFFSET) / 1000:.3f}"
-    cv2.putText(frame, text_str, (10, height - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # Draw info text
-    text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
-    cv2.putText(frame, text_str, (10, height - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-
+    cv2.putText(frame, f"{0 if not radar_data.ts else (radar_data.ts[-1] - radar_data.ts[0])/1000:.2f} s remaining", (10, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    cv2.putText(frame, f"nPoints (frame): {len(radar_frame.x)}", (10, height - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    #cv2.putText(frame, f"nPoints (data): {len(radar_data.x)}", (10, height - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # if config["remove_noise"]:
+    #     cv2.putText(
+    #         frame, 
+    #         f"NOISE REMOVED -- Points in gate: s1:{len(s1_display_points)} s2: {len(s2_display_points)}", 
+    #         (10, height - 80), 
+    #         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+    #         )
+    # else:
+    #     cv2.putText(
+    #         frame, 
+    #         f"NO NOISE REMOVAL -- Points in gate: s1:{len(remove_points_outside_gate(s1_display_points, gate_tl, gate_br))} s2: {len(remove_points_outside_gate(s2_display_points, gate_tl, gate_br))}",
+    #         (10, height - 80), 
+    #         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+    #         )
+    cv2.putText(
+            frame, 
+            f"Points in gate -- s1:{len(s1_display_points)} s2: {len(s2_display_points)}", 
+            (10, height - 60), 
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+            )
+    # ts_str = str(radar_frame.ts[0]) if radar_frame.ts else ""
+    # cv2.putText(
+    #     frame, 
+    #     f"Replay 1.0x, {config['playback_fps']} fps Curr frame ts: {ts_str}", 
+    #     (10, height - 100), 
+    #     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+    #     )
+    cv2.putText(
+        frame, 
+        f"Replay 1.0x, {config['playback_fps']} fps Time Elapsed (s): {radar_data._RadarData__time_elapsed/1000:.2f} / {TOTAL_DATA_S:.2f}", 
+        (10, height - 100), 
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+        )
+    # add legend: green: s1, yellow: s2, orange: bbox, grey: static. color coded text
+    cv2.putText(
+        frame, 
+        "Legend: ", 
+        (0, 10), 
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+        )
+    cv2.putText(
+        frame,
+        "s1",
+        (0, 30),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, GREEN, 2
+        ) 
+    cv2.putText(
+        frame,
+        "s2",
+        (0, 50),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, YELLOW, 2
+        )
+    cv2.putText(
+        frame,
+        "Bounding box",
+        (0, 70),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, ORANGE, 2
+        )
+    cv2.putText(
+        frame,
+        "Static",
+        (0, 90),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, washout(GREEN), 2
+        )
+        
 def display_control_info():
     cv2.putText(
         frame, 
         "Controls - 'q': quit  'p': pause", 
         (width-175, 20), 
         cv2.FONT_HERSHEY_SIMPLEX, 
+        0.35, (0, 0, 150), 1
+        )
+    cv2.putText(
+        frame,
+        "scale/offset gate region with trackbar",
+        (width-217, 40),
+        cv2.FONT_HERSHEY_SIMPLEX,
         0.35, (0, 0, 150), 1
         )
 
@@ -341,7 +392,7 @@ while True:
     if s2_display_points:
         draw_radar_points(s2_display_points, sensor_id=2)
 
-    display_video_info(radar_frame, width, height)
+    display_frame_info(radar_frame, width, height)
     display_control_info()
 
     # after drawing points on frames, imshow the frames

@@ -108,7 +108,7 @@ class RadarData:
             self.z.append(item["z"])
             self.ts.append(item["timestamp"])
         self.__time_elapsed = 0
-        self.__initial_timestamp = None  #
+        self.__initial_timestamp = None  
 
     def __repr__(self):
         class_str = f"RadarData object: {self.get_num_sensors()} sensors. "
