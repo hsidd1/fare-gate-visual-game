@@ -183,43 +183,33 @@ def draw_bbox(centroids, cluster_point_cloud):
 
 def display_frame_info(radar_frame: RadarData, width, height):
     """Display video info on frame. width and height are the dimensions of the window."""
-    cv2.putText(frame, f"{0 if not radar_data.ts else (radar_data.ts[-1] - radar_data.ts[0])/1000:.2f} s remaining", (10, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    cv2.putText(frame, f"nPoints (frame): {len(radar_frame.x)}", (10, height - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    #cv2.putText(frame, f"nPoints (data): {len(radar_data.x)}", (10, height - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # if config["remove_noise"]:
-    #     cv2.putText(
-    #         frame, 
-    #         f"NOISE REMOVED -- Points in gate: s1:{len(s1_display_points)} s2: {len(s2_display_points)}", 
-    #         (10, height - 80), 
-    #         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
-    #         )
-    # else:
-    #     cv2.putText(
-    #         frame, 
-    #         f"NO NOISE REMOVAL -- Points in gate: s1:{len(remove_points_outside_gate(s1_display_points, gate_tl, gate_br))} s2: {len(remove_points_outside_gate(s2_display_points, gate_tl, gate_br))}",
-    #         (10, height - 80), 
-    #         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
-    #         )
+    # Time remaining
+    cv2.putText(frame, 
+                f"{0 if not radar_data.ts else (radar_data.ts[-1] - radar_data.ts[0])/1000:.2f} s remaining", 
+                (10, height - 20), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+                )
+    # Number of points in frame
+    cv2.putText(frame, 
+                f"nPoints (frame): {len(radar_frame.x)}", 
+                (10, height - 40), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+                )
+    # Number of points in gate
     cv2.putText(
             frame, 
             f"Points in gate -- s1:{len(s1_display_points)} s2: {len(s2_display_points)}", 
             (10, height - 60), 
             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
             )
-    # ts_str = str(radar_frame.ts[0]) if radar_frame.ts else ""
-    # cv2.putText(
-    #     frame, 
-    #     f"Replay 1.0x, {config['playback_fps']} fps Curr frame ts: {ts_str}", 
-    #     (10, height - 100), 
-    #     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
-    #     )
+    # Video config info, time elapsed, total time of data
     cv2.putText(
         frame, 
         f"Replay 1.0x, {config['playback_fps']} fps Time Elapsed (s): {radar_data._RadarData__time_elapsed/1000:.2f} / {TOTAL_DATA_S:.2f}", 
         (10, height - 100), 
         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
         )
-    # add legend: green: s1, yellow: s2, orange: bbox, grey: static. color coded text
+    # Legend: green: s1, yellow: s2, orange: bbox, washed: static. With colour coded text, top left
     cv2.putText(
         frame, 
         "Legend: ", 
