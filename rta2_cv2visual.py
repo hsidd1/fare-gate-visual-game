@@ -4,6 +4,7 @@ import json
 import yaml
 from radar_points import RadarData, StaticPoints
 from preprocess import load_data_sensorhost, rot_mtx_entry, rot_mtx_exit
+from radar_clustering import *
 
 # ------------------ DATA PREPROCESS ------------------ #
 # load configuration
@@ -22,6 +23,7 @@ with open(radar_data_file) as json_file:
 # use sensorhost format
 radar_data = load_data_sensorhost(data)  # Original coordinates
 print(f"Radar data loaded.\n{radar_data}\n")
+TOTAL_DATA_S = (radar_data.ts[-1] - radar_data.ts[0])/1000 # total seconds of data, before removing points
 
 # Apply transformation
 alpha = config["SensorAngles"]["alpha"]
@@ -64,6 +66,8 @@ print(f"{xy_trackbar_scale = }")
 GREEN = (0, 255, 0)
 YELLOW = (0, 255, 255)
 BLUE = (255, 0, 0)
+RED = (0, 0, 255)
+ORANGE = (0, 165, 255)
 
 
 def washout(color, factor=0.2):
@@ -89,7 +93,7 @@ def scale_callback(*args):
     xy_trackbar_scale = cv2.getTrackbarPos("scale %", "Radar Visualization") / 100
 
 
-# draw gate at top left of window, with width and height of gate. 
+# draw gate at top left of window, with width and height of gate.
 # Scale to match gate location with trackbar - returns valid display region
 def draw_gate_topleft():
     # initial coords at top left corner (0,0)
@@ -99,25 +103,33 @@ def draw_gate_topleft():
     )
     # rect end initial coords are based on the physical width and height of the gate
     rect_end = (
-        (int(offsetx * 2 * scalemm2px * xy_trackbar_scale) + slider_xoffset), 
+        (int(offsetx * 2 * scalemm2px * xy_trackbar_scale) + slider_xoffset),
         (int(offsety * 2 * scalemm2px * xy_trackbar_scale) + slider_yoffset)
     )
     cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
     return rect_start, rect_end
 
 
-def draw_circle(rect_start, rect_end, coord, color):
-    # draw coord as circle on frame, if coord is within gate
-    if coord[0] < rect_start[0] or coord[0] > rect_end[0]:
-        return
-    if coord[1] < rect_start[1] or coord[1] > rect_end[1]:
-        return
-    cv2.circle(frame, (coord[0], coord[1]), 4, color, -1)
+def remove_points_outside_gate(points, rect_start, rect_end) -> list:
+    """Remove points that are outside the gate area. 
+    Returns a list of points that are inside the gate area."""
+    points_in_gate = []
+    for coord in points:
+        x = int((coord[0] + offsetx) * scalemm2px)
+        y = int((-coord[1] + offsety) * scalemm2px)
+        x = int(x * xy_trackbar_scale)
+        y = int(y * xy_trackbar_scale)
+        x += slider_xoffset
+        y += slider_yoffset
+        if x < rect_start[0] or x > rect_end[0]:
+            continue
+        if y < rect_start[1] or y > rect_end[1]:
+            continue
+        points_in_gate.append(coord)
+    return points_in_gate
 
 
 def draw_radar_points(points, sensor_id):
-    remove_noise = config["remove_noise"]
-    rect_start, rect_end = draw_gate_topleft()
     if sensor_id == 1:
         color = GREEN
     elif sensor_id == 2:
@@ -136,43 +148,114 @@ def draw_radar_points(points, sensor_id):
         x += slider_xoffset
         y += slider_yoffset
         if static:
-            if remove_noise:
-                draw_circle(rect_start, rect_end, (x, y), washout(color))
-            else:
-                cv2.circle(frame, (x, y), 4, washout(color), -1)
+            cv2.circle(frame, (x, y), 4, washout(color), -1)
         else:
-            if remove_noise:
-                draw_circle(rect_start, rect_end, (x, y), color)
-            else:
-                cv2.circle(frame, (x, y), 4, color, -1)
+            cv2.circle(frame, (x, y), 4, color, -1)
 
 
-def display_video_info(radar_frame: RadarData, width, height):
+def draw_clustered_points(processed_centroids, color=RED):
+    for cluster in processed_centroids:
+        x = int((int(cluster['x'] + offsetx) * scalemm2px))
+        y = int((int(-cluster['y'] + offsety) * scalemm2px))  # y axis is flipped
+        # z = int(coord[2] * scalemm2px)  # z is not used
+        # static = coord[3]
+
+        # xy modifications from trackbar controls
+        x = int(x * xy_trackbar_scale)
+        y = int(y * xy_trackbar_scale)
+        x += slider_xoffset
+        y += slider_yoffset
+        cv2.circle(frame, (x, y), 10, color, -1)
+
+
+def draw_bbox(centroids, cluster_point_cloud):
+    for i in enumerate(centroids):
+        x1, y1, x2, y2 = cluster_bbox(cluster_point_cloud, i[0])
+        # convert mm to px 
+        x1, y1, x2, y2 = int(x1 + offsetx) * scalemm2px, int(-y1 + offsety) * scalemm2px, int(x2 + offsetx) * scalemm2px, int(-y2 + offsety) * scalemm2px
+        # modify based on trackbar
+        x1, y1, x2, y2 = int(x1 * xy_trackbar_scale) + slider_xoffset, int(y1 * xy_trackbar_scale) + slider_yoffset, int(x2 * xy_trackbar_scale) + slider_xoffset, int(y2 * xy_trackbar_scale) + slider_yoffset
+        object_size, object_height = obj_height(cluster_point_cloud, i[0])
+        rect = cv2.rectangle(frame, (x1, y1), (x2, y2), ORANGE, 1)
+        size, _ = cv2.getTextSize(f"{object_height:.1f} mm", cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+        text_width, text_height = size
+        cv2.putText(rect, f"{object_height:.1f} mm", (x1, y1 - text_height - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, ORANGE, 2)
+
+def display_frame_info(radar_frame: RadarData, width, height):
     """Display video info on frame. width and height are the dimensions of the window."""
-    # TODO: this part is broken. Need to revise.
-    s1_pts = []
-    s2_pts = []
-    T_RAD_BEGIN = 0
-    TS_OFFSET = 2.3
-
-    cv2.putText(frame, f"end timestamp: t_end ms", (10, height-20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    text_str = f"Curr frame ts:{(t_rad-T_RAD_BEGIN)/1000:.3f}   Replay {1:.1f}x"
-    cv2.putText(frame, text_str, (10, height-40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # find timestamps of sensors
-    sensor1_timestamps = list(set([coord["timestamp"] for coord in s1_pts]))
-    text_str = f"s_entry ts:"
-    for i, timestamp in enumerate(sensor1_timestamps):
-        text_str += f" s1[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
-    cv2.putText(frame, text_str, (10, height-100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # find timestamps of sensors
-    sensor2_timestamps = list(set([coord["timestamp"] for coord in s2_pts]))
-    text_str = f"s_exit ts: "
-    for i, timestamp in enumerate(sensor2_timestamps):
-        text_str += f" s2[{i}]: {(timestamp-TS_OFFSET)/1000:.3f}"
-    cv2.putText(frame, text_str, (10, height-80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-    # Draw info text
-    text_str = f"nPoints:  s1:{len(s1_pts):2d}, s2:{len(s2_pts):2d}"
-    cv2.putText(frame, text_str, (10, height-60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    # Time remaining
+    cv2.putText(frame, 
+                f"{0 if not radar_data.ts else (radar_data.ts[-1] - radar_data.ts[0])/1000:.2f} s remaining", 
+                (10, height - 20), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+                )
+    # Number of points in frame
+    cv2.putText(frame, 
+                f"nPoints (frame): {len(radar_frame.x)}", 
+                (10, height - 40), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+                )
+    # Number of points in gate
+    cv2.putText(
+            frame, 
+            f"Points in gate -- s1:{len(s1_display_points)} s2: {len(s2_display_points)}", 
+            (10, height - 60), 
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+            )
+    # Video config info, time elapsed, total time of data
+    cv2.putText(
+        frame, 
+        f"Replay 1.0x, {config['playback_fps']} fps Time Elapsed (s): {radar_data._RadarData__time_elapsed/1000:.2f} / {TOTAL_DATA_S:.2f}", 
+        (10, height - 100), 
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+        )
+    # Legend: green: s1, yellow: s2, orange: bbox, washed: static. With colour coded text, top left
+    cv2.putText(
+        frame, 
+        "Legend: ", 
+        (0, 10), 
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+        )
+    cv2.putText(
+        frame,
+        "s1",
+        (0, 30),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, GREEN, 2
+        ) 
+    cv2.putText(
+        frame,
+        "s2",
+        (0, 50),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, YELLOW, 2
+        )
+    cv2.putText(
+        frame,
+        "Bounding box",
+        (0, 70),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, ORANGE, 2
+        )
+    cv2.putText(
+        frame,
+        "Static",
+        (0, 90),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, washout(GREEN), 2
+        )
+        
+def display_control_info():
+    cv2.putText(
+        frame, 
+        "Controls - 'q': quit  'p': pause", 
+        (width-175, 20), 
+        cv2.FONT_HERSHEY_SIMPLEX, 
+        0.35, (0, 0, 150), 1
+        )
+    cv2.putText(
+        frame,
+        "scale/offset gate region with trackbar",
+        (width-217, 40),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.35, (0, 0, 150), 1
+        )
 
 # ------------------ VISUALIZATION ------------------ #
 
@@ -247,6 +330,9 @@ while True:
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
     height, width = frame.shape[:2]
 
+    # draw gate area and get gate area coordinates
+    gate_tl, gate_br = draw_gate_topleft()
+
     # take points in current RADAR frame
     radar_frame = radar_data.take_next_frame(interval=incr)
 
@@ -263,25 +349,42 @@ while True:
         radar_frame.set_static_points(s2_static.get_static_points())
         s2_display_points = radar_frame.get_points_for_display(sensor_id=2)
 
+    # remove points that are out of gate area, if configured
+    if config["remove_noise"]:
+        s1_display_points = remove_points_outside_gate(s1_display_points, gate_tl, gate_br)
+        s2_display_points = remove_points_outside_gate(s2_display_points, gate_tl, gate_br)
+        
     # retain previous frame if no new points
-    if len(s1_display_points) == 0:
+    if not s1_display_points:
         s1_display_points = s1_display_points_prev
     else:
         s1_display_points_prev = s1_display_points
-    if len(s2_display_points) == 0:
+    if not s2_display_points:
         s2_display_points = s2_display_points_prev
     else:
         s2_display_points_prev = s2_display_points
 
+    # get all non-static points and cluster
+    s1_s2_combined = [values[:-1] for values in s1_display_points + s2_display_points if values[-1] == 0]
+    if len(s1_s2_combined) > 1:
+        processor = ClusterProcessor(eps=250, min_samples=4)  # default: eps=400, min_samples=5 --> eps is in mm
+        centroids, cluster_point_cloud = processor.cluster_points(s1_s2_combined)  # get the centroids of each
+        # cluster and their associated point cloud
+        draw_clustered_points(centroids)  # may not be in the abs center of bbox --> "center of mass", not area
+        # centroid.
+        draw_clustered_points(cluster_point_cloud, color=BLUE)  # highlight the points that belong to the detected
+        # obj
+        draw_bbox(centroids, cluster_point_cloud)  # draw the bounding box of each cluster
+
     # draw points on frame
-    if len(s1_display_points) >= 1:
+    if s1_display_points:
         draw_radar_points(s1_display_points, sensor_id=1)
-    if len(s2_display_points) >= 1:
+    if s2_display_points:
         draw_radar_points(s2_display_points, sensor_id=2)
 
-    draw_gate_topleft()
-    display_video_info(radar_frame, width, height) 
-    
+    display_frame_info(radar_frame, width, height)
+    display_control_info()
+
     # after drawing points on frames, imshow the frames
     cv2.imshow("Radar Visualization", frame)
 
@@ -294,6 +397,7 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+
 
 # ------------------ SAVE CONFIG ------------------ #
 def yaml_update():
@@ -312,6 +416,5 @@ def yaml_update():
             break
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
-
 
 # yaml_update()

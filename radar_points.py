@@ -52,6 +52,17 @@ class RadarFrame:
                 points_list.append((self.x[i], self.y[i], self.z[i], self.is_static[i]))
         return points_list
 
+    # TODO: points_for_clustering not working as expected, each radar frame contains points for only 1 sensor at a
+    #  time. reformat how its used in main or just delete bc combining points for display works well.
+    def points_for_clustering(self) -> list:
+        points_list = []
+        for i, status in enumerate(self.is_static):
+            if status == 0: # if point is not static
+                points_list.append((self.x[i], self.y[i], self.z[i])) # for actual z value
+                # points_list.append((self.x[i], self.y[i], 0)) # flatten z value
+                print(self.sid)
+        return points_list
+
     def get_xyz_coord(self, sensor_id) -> list:
         points_list = []
         for i, id in enumerate(self.sid):
@@ -97,7 +108,7 @@ class RadarData:
             self.z.append(item["z"])
             self.ts.append(item["timestamp"])
         self.__time_elapsed = 0
-        self.__initial_timestamp = None  #
+        self.__initial_timestamp = None  
 
     def __repr__(self):
         class_str = f"RadarData object: {self.get_num_sensors()} sensors. "
