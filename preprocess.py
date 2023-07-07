@@ -50,3 +50,6 @@ def load_data_sensorhost(data: dict) -> RadarData:
 
             radar_points.append(s)
     return RadarData(radar_points)
+
+def load_data_live(*args) -> RadarData:
+    raise NotImplementedError
