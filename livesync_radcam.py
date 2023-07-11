@@ -5,6 +5,7 @@ import json
 from radar_points import  StaticPoints
 from preprocess import load_data_sensorhost, rot_mtx_entry, rot_mtx_exit
 from radar_clustering import *
+import datetime
 
 # load config
 #TODO: add live config param 
@@ -219,6 +220,8 @@ while True:
     ret, frame = cap.read()
     if not ret:
         break
+    print("Current time: ", datetime.datetime.now())
+    key = cv2.waitKey(1000)
     height, width = frame.shape[:2]
     frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
