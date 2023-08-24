@@ -3,6 +3,7 @@
 *.avi
 *.mp4
 *.ipynb
+*.jpg
 
 # PyCharm
 .idea/
