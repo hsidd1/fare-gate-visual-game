@@ -58,14 +58,14 @@ def load_data_tlv(data: json) -> RadarData:
         for j in range(len(item["x"])):
             s = dict()
             s["sensorId"] = item["Sensor_id"]
-            s["x"] = item["x"][j] * 100  # converting to mm
-            s["y"] = item["y"][j] * 100
-            s["z"] = item["z"][j] * 100
+            s["x"] = item["x"][j] * 1000  # converting to mm
+            s["y"] = item["y"][j] * 1000
+            s["z"] = item["z"][j] * 1000
             #s["timestamp"] = int(item["time"].replace(":","").replace(".",""))
             time_str = item["time"]
             time_obj = datetime.datetime.strptime(time_str, "%H:%M:%S.%f")
 
-        # Convert datetime to milliseconds
+            # convert datetime to milliseconds
             milliseconds = int(time_obj.hour * 3600 + time_obj.minute * 60 + time_obj.second) * 1000 + time_obj.microsecond // 1000
             s["timestamp"] = milliseconds
             radar_points.append(s)
