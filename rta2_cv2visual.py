@@ -6,6 +6,11 @@ from radar_points import RadarData, StaticPoints
 from preprocess import load_data_sensorhost, rot_mtx_entry, rot_mtx_exit
 from radar_clustering import *
 
+# -------------- SET VISUALIZATION MODE --------------- #
+
+mode = "image_mode"  # process live image frames
+# mode = "video_mode"  # process video file
+
 # ------------------ DATA PREPROCESS ------------------ #
 # load configuration
 with open("config.yaml", "r") as file:
@@ -311,25 +316,59 @@ while round(rad_cam_offset) > 0:
     # print(f"rad_cam_offset is now: {0 if rad_cam_offset < 1 else rad_cam_offset}")
     t_rad = radar_data.ts[0]  # timestamp of the first point in frame
 
+curr_frame = 0
+frame_files = os.listdir("data/frames")
+
 # Prepare for main loop: skip video frames, if video is ahead
 if round(rad_cam_offset) < 0:
     print("rad_cam_offset is set negative, waiting radar points while playing video.")
-while round(rad_cam_offset) < 0:
-    rad_cam_offset += incr
-    ret, frame = cap.read()
-    if not ret:
-        break
+
+    if mode == "video_mode":
+            while round(rad_cam_offset) < 0:
+                rad_cam_offset += incr
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+    if mode == "image_mode":
+        frame_timestamps = [int(ts[:-4]) for ts in frame_files]
+        target_timestamp = frame_timestamps[0] + rad_cam_offset
+        # find the file name (timestamp) closest to the target timestamp
+        # closest_frame = min(frame_timestamps, key=lambda x: abs(x - target_timestamp))
+        min_difference = float("inf")
+        for frame_ts in frame_timestamps:
+            difference = abs(frame_ts - target_timestamp)
+            if difference < min_difference:
+                min_difference = difference
+                closest_frame = frame_ts
+            else:
+                # sorted so we can break early
+                break
+        rad_cam_offset = 0
+        curr_frame = closest_frame
 
 # main loop
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-    height, width = frame.shape[:2]
-    frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
-    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-    height, width = frame.shape[:2]
-
+    # get frames based on mode configuration
+    if mode == "video_mode":
+        ret, frame = cap.read()
+        if not ret:
+            break
+        height, width = frame.shape[:2]
+        frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
+        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        height, width = frame.shape[:2]
+    elif mode == "image_mode":
+        if curr_frame < len(frame_files):
+            frame = cv2.imread(f"data/frames/{frame_files[curr_frame]}")
+            curr_frame += 1
+        else:
+            break
+        height, width = frame.shape[:2]
+        frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
+        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        height, width = frame.shape[:2]
+    
     # draw gate area and get gate area coordinates
     gate_tl, gate_br = draw_gate_topleft()
 
