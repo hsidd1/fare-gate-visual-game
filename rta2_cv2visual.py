@@ -3,7 +3,7 @@ import cv2
 import json
 import yaml
 from radar_points import RadarData, StaticPoints
-from preprocess import load_data_sensorhost, rot_mtx_entry, rot_mtx_exit
+from preprocess import load_data_sensorhost, rot_mtx_entry, rot_mtx_exit, load_data_tlv
 from radar_clustering import *
 
 # -------------- SET VISUALIZATION MODE --------------- #
@@ -16,18 +16,28 @@ mode = "image_mode"  # process live image frames
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-# check if video file exists
-if not os.path.isfile(config["Files"]["video_file"]):
-    raise FileNotFoundError(f"Video file does not exist.")
+if mode == "video_mode":
+    # check if video file exists
+    if not os.path.isfile(config["Files"]["video_file"]):
+        raise FileNotFoundError(f"Video file does not exist.")
 
-# load json data
-radar_data_file = config["Files"]["radar_data_file"]
-with open(radar_data_file) as json_file:
-    data = json.load(json_file)
+    # load json data
+    radar_data_file = config["Files"]["radar_data_file"]
+    with open(radar_data_file) as json_file:
+        data = json.load(json_file)
 
-# use sensorhost format
-radar_data = load_data_sensorhost(data)  # Original coordinates
-print(f"Radar data loaded.\n{radar_data}\n")
+    # use sensorhost format
+    radar_data = load_data_sensorhost(data)  # Original coordinates
+    print(f"Radar data loaded.\n{radar_data}\n")
+
+if mode == "image_mode":
+    radar_data_file = "data/Test2_tlv_data_log.json"
+    with open(radar_data_file) as json_file:
+        data = json.load(json_file)
+    # load based on format with tlv
+    radar_data = load_data_tlv(data)
+    print(f"Radar data loaded.\n{radar_data}\n")
+
 TOTAL_DATA_S = (radar_data.ts[-1] - radar_data.ts[0])/1000 # total seconds of data, before removing points
 
 # Apply transformation
@@ -51,12 +61,21 @@ radar_data.transform_coord(
 print(f"Radar data transformed.\n{radar_data}\n")
 
 # ------------------ VISUALIZATION PARAMS ------------------ #
-rad_cam_offset = config["rad_cam_offset"]
-scalemm2px = config["scalemm2px"]
-wait_ms = config["wait_ms"]
-slider_xoffset = config["TrackbarDefaults"]["slider_xoffset"]
-slider_yoffset = config["TrackbarDefaults"]["slider_yoffset"]
-xy_trackbar_scale = config["TrackbarDefaults"]["xy_trackbar_scale"]
+if mode == "video_mode":
+    rad_cam_offset = config["rad_cam_offset"]
+    scalemm2px = config["scalemm2px"]
+    wait_ms = config["wait_ms"]
+    slider_xoffset = config["TrackbarDefaults"]["slider_xoffset"]
+    slider_yoffset = config["TrackbarDefaults"]["slider_yoffset"]
+    xy_trackbar_scale = config["TrackbarDefaults"]["xy_trackbar_scale"]
+
+elif mode == "image_mode":
+    rad_cam_offset = 0
+    scalemm2px = 0.5
+    wait_ms = 33
+    slider_xoffset = 0
+    slider_yoffset = 0
+    xy_trackbar_scale = 1
 
 print(f"{rad_cam_offset = }")
 print(f"{scalemm2px = }")
@@ -265,10 +284,11 @@ def display_control_info():
 # ------------------ VISUALIZATION ------------------ #
 
 # video frame buffer
-video_file = config["Files"]["video_file"]
-cap = cv2.VideoCapture(video_file)
-num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-print(f"Number of frames: {num_frames}")
+if mode == "video_mode":
+    video_file = config["Files"]["video_file"]
+    cap = cv2.VideoCapture(video_file)
+    num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    print(f"Number of frames: {num_frames}")
 
 cv2.namedWindow("Radar Visualization")
 cv2.createTrackbar(
@@ -330,7 +350,7 @@ if round(rad_cam_offset) < 0:
                 if not ret:
                     break
 
-    if mode == "image_mode":
+    elif mode == "image_mode":
         frame_timestamps = [int(ts[:-4]) for ts in frame_files]
         target_timestamp = frame_timestamps[0] + rad_cam_offset
         # find the file name (timestamp) closest to the target timestamp
@@ -374,6 +394,7 @@ while True:
 
     # take points in current RADAR frame
     radar_frame = radar_data.take_next_frame(interval=incr)
+    print(f"radar_frame: {radar_frame}")
 
     # update static points, prepare for display
     s1_display_points = []
@@ -434,7 +455,8 @@ while True:
     elif key == ord("p"):  # pause/unpause program if 'p' is pressed
         cv2.waitKey(0)
 
-cap.release()
+if mode == "video_mode":
+    cap.release()
 cv2.destroyAllWindows()
 
 

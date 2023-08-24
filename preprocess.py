@@ -1,6 +1,7 @@
 import numpy as np
 from radar_points import RadarData
-
+import json
+import datetime
 
 # for entry sensor
 def calc_rot_matrix(alpha, beta):
@@ -33,7 +34,7 @@ def rot_mtx_exit(alpha, beta):
     return calc_rot_matrix(alpha + 180, beta)
 
 
-def load_data_sensorhost(data: dict) -> RadarData:
+def load_data_sensorhost(data: json) -> RadarData:
     radar_points = []
     for item in data["frames"]:
         num_ob = item["sensorMessage"]["metadata"]["numOfDetectedObjects"]
@@ -49,4 +50,24 @@ def load_data_sensorhost(data: dict) -> RadarData:
             s["timestamp"] = timestamp
 
             radar_points.append(s)
+    return RadarData(radar_points)
+
+def load_data_tlv(data: json) -> RadarData:
+    radar_points = []
+    for item in data:
+        for j in range(len(item["x"])):
+            s = dict()
+            s["sensorId"] = item["Sensor_id"]
+            s["x"] = item["x"][j] * 100  # converting to mm
+            s["y"] = item["y"][j] * 100
+            s["z"] = item["z"][j] * 100
+            #s["timestamp"] = int(item["time"].replace(":","").replace(".",""))
+            time_str = item["time"]
+            time_obj = datetime.datetime.strptime(time_str, "%H:%M:%S.%f")
+
+        # Convert datetime to milliseconds
+            milliseconds = int(time_obj.hour * 3600 + time_obj.minute * 60 + time_obj.second) * 1000 + time_obj.microsecond // 1000
+            s["timestamp"] = milliseconds
+            radar_points.append(s)
+
     return RadarData(radar_points)

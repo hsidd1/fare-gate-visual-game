@@ -17,5 +17,3 @@ playback_fps: 27
 scalemm2px: 0.5
 wait_ms: 33
 remove_noise: True
-
-
