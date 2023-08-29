@@ -1,6 +1,7 @@
 import os
 import cv2
 import json
+import time
 from typing import Tuple
 import yaml
 from radar_points import RadarData, StaticPoints
@@ -9,8 +10,8 @@ from radar_clustering import *
 
 # -------------- SET VISUALIZATION MODE --------------- #
 
-# mode = "frame_mode"  # process live image frames
-mode = "video_mode"  # process video file
+mode = "frame_mode"  # process live image frames
+# mode = "video_mode"  # process video file
 
 # ------------------ DATA PREPROCESS ------------------ #
 # load configuration
@@ -32,7 +33,7 @@ if mode == "video_mode":
     print(f"Radar data loaded.\n{radar_data}\n")
 
 if mode == "frame_mode":
-    if not os.path.isdir(config["Files"]["frames_radar_data"]):
+    if not os.path.isfile(config["Files"]["frames_radar_data"]):
         raise FileNotFoundError(f"Frames directory does not exist.")
     
     # load json data
@@ -385,6 +386,8 @@ while True:
         if curr_frame < len(frame_files):
             frame = cv2.imread(f"data/frames/{frame_files[curr_frame]}")
             curr_frame += 1
+            # account for interval between frame timestamps relative to radar data timestamp intervals
+            time.sleep(incr/1000)
         else:
             break # end of frames
         height, width = frame.shape[:2]
