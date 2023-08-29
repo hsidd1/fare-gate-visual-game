@@ -1,6 +1,7 @@
 import os
 import cv2
 import json
+from typing import Tuple
 import yaml
 from radar_points import RadarData, StaticPoints
 from preprocess import load_data_sensorhost, rot_mtx_entry, rot_mtx_exit, load_data_tlv
@@ -8,8 +9,8 @@ from radar_clustering import *
 
 # -------------- SET VISUALIZATION MODE --------------- #
 
-mode = "image_mode"  # process live image frames
-# mode = "video_mode"  # process video file
+# mode = "frame_mode"  # process live image frames
+mode = "video_mode"  # process video file
 
 # ------------------ DATA PREPROCESS ------------------ #
 # load configuration
@@ -30,10 +31,15 @@ if mode == "video_mode":
     radar_data = load_data_sensorhost(data)  # Original coordinates
     print(f"Radar data loaded.\n{radar_data}\n")
 
-if mode == "image_mode":
-    radar_data_file = "data/Test2_tlv_data_log.json"
+if mode == "frame_mode":
+    if not os.path.isdir(config["Files"]["frames_radar_data"]):
+        raise FileNotFoundError(f"Frames directory does not exist.")
+    
+    # load json data
+    radar_data_file = config["Files"]["frames_radar_data"]
     with open(radar_data_file) as json_file:
         data = json.load(json_file)
+
     # load based on format with tlv
     radar_data = load_data_tlv(data)
     print(f"Radar data loaded.\n{radar_data}\n")
@@ -62,20 +68,20 @@ print(f"Radar data transformed.\n{radar_data}\n")
 
 # ------------------ VISUALIZATION PARAMS ------------------ #
 if mode == "video_mode":
-    rad_cam_offset = config["rad_cam_offset"]
-    scalemm2px = config["scalemm2px"]
-    wait_ms = config["wait_ms"]
-    slider_xoffset = config["TrackbarDefaults"]["slider_xoffset"]
-    slider_yoffset = config["TrackbarDefaults"]["slider_yoffset"]
-    xy_trackbar_scale = config["TrackbarDefaults"]["xy_trackbar_scale"]
+    rad_cam_offset = config["VideoModeDefaults"]["rad_cam_offset"]
+    scalemm2px = config["VideoModeDefaults"]["scalemm2px"]
+    wait_ms = config["VideoModeDefaults"]["wait_ms"]
+    slider_xoffset = config["VideoModeDefaults"]["TrackbarDefaults"]["slider_xoffset"]
+    slider_yoffset = config["VideoModeDefaults"]["TrackbarDefaults"]["slider_yoffset"]
+    xy_trackbar_scale = config["VideoModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"]
 
-elif mode == "image_mode":
-    rad_cam_offset = 0
-    scalemm2px = 0.5
-    wait_ms = 33
-    slider_xoffset = 0
-    slider_yoffset = 0
-    xy_trackbar_scale = 1
+elif mode == "frame_mode":
+    rad_cam_offset = config["FrameModeDefaults"]["rad_cam_offset"]
+    scalemm2px = config["FrameModeDefaults"]["scalemm2px"]
+    wait_ms = config["FrameModeDefaults"]["wait_ms"]
+    slider_xoffset = config["FrameModeDefaults"]["TrackbarDefaults"]["slider_xoffset"]
+    slider_yoffset = config["FrameModeDefaults"]["TrackbarDefaults"]["slider_yoffset"]
+    xy_trackbar_scale = config["FrameModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"]
 
 print(f"{rad_cam_offset = }")
 print(f"{scalemm2px = }")
@@ -117,9 +123,10 @@ def scale_callback(*args):
     xy_trackbar_scale = cv2.getTrackbarPos("scale %", "Radar Visualization") / 100
 
 
-# draw gate at top left of window, with width and height of gate.
-# Scale to match gate location with trackbar - returns valid display region
-def draw_gate_topleft():
+def draw_gate_topleft() -> Tuple[Tuple[int, int], Tuple[int, int]]:
+    """draw gate at top left of window, with width and height of gate.
+    Scale to match gate location with trackbar 
+    Returns valid display region start and end coordinates."""
     # initial coords at top left corner (0,0)
     rect_start = (
         (slider_xoffset),
@@ -141,10 +148,9 @@ def remove_points_outside_gate(points, rect_start, rect_end) -> list:
     for coord in points:
         x = int((coord[0] + offsetx) * scalemm2px)
         y = int((-coord[1] + offsety) * scalemm2px)
-        x = int(x * xy_trackbar_scale)
-        y = int(y * xy_trackbar_scale)
-        x += slider_xoffset
-        y += slider_yoffset
+        x = int(x * xy_trackbar_scale) + slider_xoffset
+        y = int(y * xy_trackbar_scale) + slider_yoffset
+        # skip if point is outside gate area
         if x < rect_start[0] or x > rect_end[0]:
             continue
         if y < rect_start[1] or y > rect_end[1]:
@@ -153,7 +159,7 @@ def remove_points_outside_gate(points, rect_start, rect_end) -> list:
     return points_in_gate
 
 
-def draw_radar_points(points, sensor_id):
+def draw_radar_points(points, sensor_id) -> None:
     if sensor_id == 1:
         color = GREEN
     elif sensor_id == 2:
@@ -167,17 +173,15 @@ def draw_radar_points(points, sensor_id):
         static = coord[3]
 
         # xy modifications from trackbar controls
-        x = int(x * xy_trackbar_scale)
-        y = int(y * xy_trackbar_scale)
-        x += slider_xoffset
-        y += slider_yoffset
+        x = int(x * xy_trackbar_scale) + slider_xoffset
+        y = int(y * xy_trackbar_scale) + slider_yoffset
         if static:
             cv2.circle(frame, (x, y), 4, washout(color), -1)
         else:
             cv2.circle(frame, (x, y), 4, color, -1)
 
 
-def draw_clustered_points(processed_centroids, color=RED):
+def draw_clustered_points(processed_centroids, color=RED) -> None:
     for cluster in processed_centroids:
         x = int((int(cluster['x'] + offsetx) * scalemm2px))
         y = int((int(-cluster['y'] + offsety) * scalemm2px))  # y axis is flipped
@@ -185,14 +189,12 @@ def draw_clustered_points(processed_centroids, color=RED):
         # static = coord[3]
 
         # xy modifications from trackbar controls
-        x = int(x * xy_trackbar_scale)
-        y = int(y * xy_trackbar_scale)
-        x += slider_xoffset
-        y += slider_yoffset
+        x = int(x * xy_trackbar_scale) + slider_xoffset
+        y = int(y * xy_trackbar_scale) + slider_yoffset
         cv2.circle(frame, (x, y), 10, color, -1)
 
 
-def draw_bbox(centroids, cluster_point_cloud):
+def draw_bbox(centroids, cluster_point_cloud) -> None:
     for i in enumerate(centroids):
         x1, y1, x2, y2 = cluster_bbox(cluster_point_cloud, i[0])
         # convert mm to px 
@@ -205,7 +207,7 @@ def draw_bbox(centroids, cluster_point_cloud):
         text_width, text_height = size
         cv2.putText(rect, f"{object_height:.1f} mm", (x1, y1 - text_height - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, ORANGE, 2)
 
-def display_frame_info(radar_frame: RadarData, width, height):
+def display_frame_info(radar_frame: RadarData, width, height) -> None:
     """Display video info on frame. width and height are the dimensions of the window."""
     # Time remaining
     cv2.putText(frame, 
@@ -265,7 +267,7 @@ def display_frame_info(radar_frame: RadarData, width, height):
         cv2.FONT_HERSHEY_SIMPLEX, 0.5, washout(GREEN), 2
         )
         
-def display_control_info():
+def display_control_info() -> None:
     cv2.putText(
         frame, 
         "Controls - 'q': quit  'p': pause", 
@@ -290,6 +292,7 @@ if mode == "video_mode":
     num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print(f"Number of frames: {num_frames}")
 
+# create window and trackbars
 cv2.namedWindow("Radar Visualization")
 cv2.createTrackbar(
     "x offset", "Radar Visualization", slider_xoffset, 600, x_trackbar_callback
@@ -350,7 +353,7 @@ if round(rad_cam_offset) < 0:
                 if not ret:
                     break
 
-    elif mode == "image_mode":
+    elif mode == "frame_mode":
         frame_timestamps = [int(ts[:-4]) for ts in frame_files]
         target_timestamp = frame_timestamps[0] + rad_cam_offset
         # find the file name (timestamp) closest to the target timestamp
@@ -378,12 +381,12 @@ while True:
         frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
         frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         height, width = frame.shape[:2]
-    elif mode == "image_mode":
+    elif mode == "frame_mode":
         if curr_frame < len(frame_files):
             frame = cv2.imread(f"data/frames/{frame_files[curr_frame]}")
             curr_frame += 1
         else:
-            break
+            break # end of frames
         height, width = frame.shape[:2]
         frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
         frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
@@ -465,9 +468,15 @@ def yaml_update():
     while True:
         choice = input("Update final trackbar values in yaml? (y/n): ").lower()
         if choice == "y":
-            config["TrackbarDefaults"]["slider_xoffset"] = slider_xoffset
-            config["TrackbarDefaults"]["slider_yoffset"] = slider_yoffset
-            config["TrackbarDefaults"]["xy_trackbar_scale"] = xy_trackbar_scale
+            if mode == "video_mode":
+                config["VideoModeDefaults"]["TrackbarDefaults"]["slider_xoffset"] = slider_xoffset
+                config["VideoModeDefaults"]["TrackbarDefaults"]["slider_yoffset"] = slider_yoffset
+                config["VideoModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"] = xy_trackbar_scale
+            elif mode == "frame_mode":
+                config["FrameModeDefaults"]["TrackbarDefaults"]["slider_xoffset"] = slider_xoffset
+                config["FrameModeDefaults"]["TrackbarDefaults"]["slider_yoffset"] = slider_yoffset
+                config["FrameModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"] = xy_trackbar_scale
+
             with open("config.yaml", "w") as file:
                 yaml.dump(config, file)
             print("Trackbar values updated in yaml.")
@@ -478,4 +487,4 @@ def yaml_update():
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
 
-# yaml_update()
+yaml_update()
