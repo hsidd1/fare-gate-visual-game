@@ -172,14 +172,21 @@ def draw_radar_points(points, sensor_id) -> None:
         y = int((-coord[1] + offsety) * scalemm2px)  # y axis is flipped
         z = int(coord[2] * scalemm2px)  # z is not used
         static = coord[3]
-
+        tlv_type = coord[4]
         # xy modifications from trackbar controls
         x = int(x * xy_trackbar_scale) + slider_xoffset
         y = int(y * xy_trackbar_scale) + slider_yoffset
-        if static:
-            cv2.circle(frame, (x, y), 4, washout(color), -1)
-        else:
-            cv2.circle(frame, (x, y), 4, color, -1)
+        
+        if tlv_type != 0: # if tlv type is defined
+            if tlv_type == 1020:
+                cv2.circle(frame, (x, y), 4, washout(color), -1)
+            elif tlv_type == 1010:
+                cv2.circle(frame, (x, y), 4, color, -1)
+        if mode == "video_mode":
+            if static:
+                cv2.circle(frame, (x, y), 4, washout(color), -1)
+            else:
+                cv2.circle(frame, (x, y), 4, color, -1)
 
 
 def draw_clustered_points(processed_centroids, color=RED) -> None:

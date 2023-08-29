@@ -21,6 +21,12 @@ class RadarFrame:
         self.z = []
         self.ts = []
         self.is_static = []  # -1 default, 1 static, 0 not static.
+        self.tlvs = []
+        # check if TLVs are present in data to avoid O(n^2)
+        if len(data) > 0 and "TLV_type" in data[0]:
+            self.isTLVformat = True
+        else:
+            self.isTLVformat = False
         for item in data:
             self.sid.append(item["sensorId"])
             self.x.append(item["x"])
@@ -28,6 +34,8 @@ class RadarFrame:
             self.z.append(item["z"])
             self.ts.append(item["timestamp"])
             self.is_static.append(-1)  # update in main program with static points class
+            if self.isTLVformat:
+                self.tlvs.append(item["TLV_type"])
 
     def __repr__(self):
         class_str = f"RadarFrame object with {len(self.sid)} points."
@@ -49,7 +57,11 @@ class RadarFrame:
         points_list = []
         for i, id in enumerate(self.sid):
             if id == sensor_id:
-                points_list.append((self.x[i], self.y[i], self.z[i], self.is_static[i]))
+                if self.isTLVformat:
+                    points_list.append((self.x[i], self.y[i], self.z[i], self.is_static[i], self.tlvs[i]))
+                else:
+                    # 0 to indicate no TLV type
+                    points_list.append((self.x[i], self.y[i], self.z[i], self.is_static[i], 0))
         return points_list
 
     # TODO: points_for_clustering not working as expected, each radar frame contains points for only 1 sensor at a
@@ -82,7 +94,7 @@ class RadarFrame:
 
 
 class RadarData:
-    def __init__(self, data: "list[dict[str, int or float]]"):
+    def __init__(self, data: "list[dict[str, int or float]]", isTLVformat=False):
         """
         Radar data object: contains all data from radar sensors in lists for each attribute.
         Updated when frames are processed by take_next_frame()
@@ -100,7 +112,8 @@ class RadarData:
         self.y = []
         self.z = []
         self.ts = []
-        self.transformed = False
+        self.tlvs = []
+        self.isTransformed = False
         for item in data:
             self.sid.append(item["sensorId"])
             self.x.append(item["x"])
@@ -108,7 +121,10 @@ class RadarData:
             self.z.append(item["z"])
             self.ts.append(item["timestamp"])
         self.__time_elapsed = 0
-        self.__initial_timestamp = None  
+        self.__initial_timestamp = None
+        self.isTLVformat = isTLVformat
+        if self.isTLVformat:
+            self.tlvs.append(item["TLV_type"])
 
     def __repr__(self):
         class_str = f"RadarData object: {self.get_num_sensors()} sensors. "
@@ -139,7 +155,7 @@ class RadarData:
     def transform_coord(self, s1_rotz, s1_rotx, s2_rotz, s2_rotx, 
                         offsetx, offsety, offsetz):
         """Apply coordinate transformation."""
-        if self.transformed:
+        if self.isTransformed:
             print("Warning: RadarData already transformed. No action taken.")
             return
         for i in range(len(self.x)):
@@ -158,7 +174,7 @@ class RadarData:
             self.y[i] = float(xyz_transformed[1])
             self.z[i] = float(xyz_transformed[2])
 
-        self.transformed = True
+        self.isTransformed = True
 
     # returns radar frame object for a specified interval
     def take_next_frame(self, interval: int) -> RadarFrame:
