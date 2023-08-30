@@ -42,8 +42,8 @@ if mode == "frame_mode":
         data = json.load(json_file)
 
     # load based on format with tlv
-    radar_data = load_data_tlv(data)
-    # radar_data = load_data_mqtt(data)
+    # radar_data = load_data_tlv(data)
+    radar_data = load_data_mqtt(data)
     print(f"Radar data loaded.\n{radar_data}\n")
 
 TOTAL_DATA_S = (radar_data.ts[-1] - radar_data.ts[0])/1000 # total seconds of data, before removing points
@@ -76,6 +76,7 @@ if mode == "video_mode":
     slider_xoffset = config["VideoModeDefaults"]["TrackbarDefaults"]["slider_xoffset"]
     slider_yoffset = config["VideoModeDefaults"]["TrackbarDefaults"]["slider_yoffset"]
     xy_trackbar_scale = config["VideoModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"]
+    playback_fps = config["VideoModeDefaults"]["playback_fps"]
 
 elif mode == "frame_mode":
     rad_cam_offset = config["FrameModeDefaults"]["rad_cam_offset"]
@@ -84,6 +85,7 @@ elif mode == "frame_mode":
     slider_xoffset = config["FrameModeDefaults"]["TrackbarDefaults"]["slider_xoffset"]
     slider_yoffset = config["FrameModeDefaults"]["TrackbarDefaults"]["slider_yoffset"]
     xy_trackbar_scale = config["FrameModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"]
+    playback_fps = config["FrameModeDefaults"]["playback_fps"]
 
 print(f"{rad_cam_offset = }")
 print(f"{scalemm2px = }")
@@ -91,6 +93,7 @@ print(f"{wait_ms = }")
 print(f"{slider_xoffset = }")
 print(f"{slider_yoffset = }")
 print(f"{xy_trackbar_scale = }")
+print(f"{playback_fps = }")
 
 # ------------------ CV2 SUPPORT FUNCTIONS ------------------ #
 
@@ -182,7 +185,7 @@ def draw_radar_points(points, sensor_id) -> None:
             if tlv_type == 1020:
                 cv2.circle(frame, (x, y), 4, washout(color), -1)
             elif tlv_type == 1010:
-                cv2.circle(frame, (x, y), 4, color, -1)
+                cv2.circle(frame, (x, y), 14, color, -1)
         if mode == "video_mode":
             if static:
                 cv2.circle(frame, (x, y), 4, washout(color), -1)
@@ -240,7 +243,7 @@ def display_frame_info(radar_frame: RadarData, width, height) -> None:
     # Video config info, time elapsed, total time of data
     cv2.putText(
         frame, 
-        f"Replay 1.0x, {config['playback_fps']} fps Time Elapsed (s): {radar_data._RadarData__time_elapsed/1000:.2f} / {TOTAL_DATA_S:.2f}", 
+        f"Replay 1.0x, {playback_fps} fps Time Elapsed (s): {radar_data._RadarData__time_elapsed/1000:.2f} / {TOTAL_DATA_S:.2f}", 
         (10, height - 100), 
         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
         )
@@ -322,7 +325,7 @@ s1_display_points_prev = []
 s2_display_points_prev = []
 
 # frame interval, set to the same as video
-incr = 1000 / config["playback_fps"]  # frame ts increment, in ms
+incr = 1000 / playback_fps  # frame ts increment, in ms
 
 # radar camera synchronization
 rad_cam_offset = rad_cam_offset - rad_cam_offset % (
@@ -386,10 +389,6 @@ while True:
         ret, frame = cap.read()
         if not ret:
             break
-        height, width = frame.shape[:2]
-        frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
-        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-        height, width = frame.shape[:2]
     elif mode == "frame_mode":
         if curr_frame < len(frame_files):
             frame = cv2.imread(f"data/frames/{frame_files[curr_frame]}")
@@ -398,36 +397,44 @@ while True:
             time.sleep(incr/1000)
         else:
             break # end of frames
-        height, width = frame.shape[:2]
-        frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
-        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-        height, width = frame.shape[:2]
+    height, width = frame.shape[:2]
+    frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
+    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    height, width = frame.shape[:2]
     
     # draw gate area and get gate area coordinates
     gate_tl, gate_br = draw_gate_topleft()
 
     # take points in current RADAR frame
-    radar_frame = radar_data.take_next_frame(interval=incr)
+    if mode == "video_mode":
+        radar_frame = radar_data.take_next_frame(interval=incr)
+    elif mode == "frame_mode":
+        radar_frame = radar_data.take_next_frame(interval=incr, isTLVframe=True)
     print(f"radar_frame: {radar_frame}")
 
     # update static points, prepare for display
     s1_display_points = []
     s2_display_points = []
     if not radar_frame.is_empty(target_sensor_id=1):
+        print("s1 non-empty")
         s1_static.update(radar_frame.get_xyz_coord(sensor_id=1))
         radar_frame.set_static_points(s1_static.get_static_points())
         s1_display_points = radar_frame.get_points_for_display(sensor_id=1)
 
     if not radar_frame.is_empty(target_sensor_id=2):
+        print("s2 non-empty")
         s2_static.update(radar_frame.get_xyz_coord(sensor_id=2))
         radar_frame.set_static_points(s2_static.get_static_points())
         s2_display_points = radar_frame.get_points_for_display(sensor_id=2)
+
+    print(f"{s1_display_points = }")
+    print(f"{s2_display_points = }")
 
     # remove points that are out of gate area, if configured
     if config["remove_noise"]:
         s1_display_points = remove_points_outside_gate(s1_display_points, gate_tl, gate_br)
         s2_display_points = remove_points_outside_gate(s2_display_points, gate_tl, gate_br)
-        
+
     # retain previous frame if no new points
     if not s1_display_points:
         s1_display_points = s1_display_points_prev
