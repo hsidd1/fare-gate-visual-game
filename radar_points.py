@@ -2,7 +2,7 @@ import numpy as np
 
 
 class RadarFrame:
-    def __init__(self, data: "list[dict[str, int or float]]"):
+    def __init__(self, data: "list[dict[str, int or float]]", isTLVframe=False):
         """
         Radar frame object contains data for a defined frame interval in lists for each attribute
         param data: a list of dictionaries
@@ -15,6 +15,7 @@ class RadarFrame:
                 'isStatic: 0
             }, ...]
         """
+        self.isTLVframe = isTLVframe
         self.sid = []
         self.x = []
         self.y = []
@@ -22,11 +23,6 @@ class RadarFrame:
         self.ts = []
         self.is_static = []  # -1 default, 1 static, 0 not static.
         self.tlvs = []
-        # check if TLVs are present in data to avoid O(n^2)
-        if len(data) > 0 and "TLV_type" in data[0]:
-            self.isTLVformat = True
-        else:
-            self.isTLVformat = False
         for item in data:
             self.sid.append(item["sensorId"])
             self.x.append(item["x"])
@@ -34,7 +30,7 @@ class RadarFrame:
             self.z.append(item["z"])
             self.ts.append(item["timestamp"])
             self.is_static.append(-1)  # update in main program with static points class
-            if self.isTLVformat:
+            if self.isTLVframe:
                 self.tlvs.append(item["TLV_type"])
 
     def __repr__(self):
@@ -57,7 +53,7 @@ class RadarFrame:
         points_list = []
         for i, id in enumerate(self.sid):
             if id == sensor_id:
-                if self.isTLVformat:
+                if self.isTLVframe:
                     points_list.append((self.x[i], self.y[i], self.z[i], self.is_static[i], self.tlvs[i]))
                 else:
                     # 0 to indicate no TLV type
@@ -114,17 +110,17 @@ class RadarData:
         self.ts = []
         self.tlvs = []
         self.isTransformed = False
+        self.isTLVformat = isTLVformat
         for item in data:
             self.sid.append(item["sensorId"])
             self.x.append(item["x"])
             self.y.append(item["y"])
             self.z.append(item["z"])
             self.ts.append(item["timestamp"])
+            if self.isTLVformat:
+                self.tlvs.append(item["TLV_type"])
         self.__time_elapsed = 0
         self.__initial_timestamp = None
-        self.isTLVformat = isTLVformat
-        if self.isTLVformat:
-            self.tlvs.append(item["TLV_type"])
 
     def __repr__(self):
         class_str = f"RadarData object: {self.get_num_sensors()} sensors. "
@@ -177,7 +173,7 @@ class RadarData:
         self.isTransformed = True
 
     # returns radar frame object for a specified interval
-    def take_next_frame(self, interval: int) -> RadarFrame:
+    def take_next_frame(self, interval: int, isTLVframe=False) -> RadarFrame:
         self.set_initial_timestamp()  # very first timestamp in data
         frame_last_ts = self.__initial_timestamp + self.__time_elapsed + interval
         self.__time_elapsed += interval
@@ -203,12 +199,17 @@ class RadarData:
                     "timestamp": self.ts[i],
                 }
             )
+            if isTLVframe:
+                extracted_data[-1]["TLV_type"] = self.tlvs[i]
+
         del self.sid[:frame_last_ts_index]
         del self.x[:frame_last_ts_index]
         del self.y[:frame_last_ts_index]
         del self.z[:frame_last_ts_index]
         del self.ts[:frame_last_ts_index]
-        return RadarFrame(extracted_data)
+        if isTLVframe: 
+            del self.tlvs[:frame_last_ts_index]
+        return RadarFrame(extracted_data, isTLVframe)
 
 
 class StaticPoints:
