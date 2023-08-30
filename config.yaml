@@ -4,6 +4,7 @@ Files:
   video_file: ./data/Controlled_test.avi
   # frame playback mode files:
   frames_radar_data: ./data/Test2_tlv_data_log.json
+  # frames_radar_data: ./data/radcam_log.json
 
 # sensor parameters based on physical setup
 SensorAngles:

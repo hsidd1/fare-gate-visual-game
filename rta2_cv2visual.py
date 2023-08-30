@@ -5,7 +5,7 @@ import time
 from typing import Tuple
 import yaml
 from radar_points import RadarData, StaticPoints
-from preprocess import load_data_sensorhost, rot_mtx_entry, rot_mtx_exit, load_data_tlv
+from preprocess import *
 from radar_clustering import *
 
 # -------------- SET VISUALIZATION MODE --------------- #
@@ -43,6 +43,7 @@ if mode == "frame_mode":
 
     # load based on format with tlv
     radar_data = load_data_tlv(data)
+    # radar_data = load_data_mqtt(data)
     print(f"Radar data loaded.\n{radar_data}\n")
 
 TOTAL_DATA_S = (radar_data.ts[-1] - radar_data.ts[0])/1000 # total seconds of data, before removing points
