@@ -45,6 +45,11 @@ Generate single scatter plot of all radar points, color coded by TLV type.
 ```sh
 python tools/tlv_scatter.py
 ```
+### Tests
+To run tests, run as module from main directory
+```sh
+python -m tests.<script-name>
+```
 ## Next Steps
 - Merge with MQTT repository for live visualization
 - YOLO fusion tracking addition

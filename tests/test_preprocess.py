@@ -1,7 +1,5 @@
 import json
-import sys
 import time
-sys.path.append("./")
 from radar_points import * 
 import preprocess
 
