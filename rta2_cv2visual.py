@@ -185,7 +185,7 @@ def draw_radar_points(points, sensor_id) -> None:
             if tlv_type == 1020:
                 cv2.circle(frame, (x, y), 4, washout(color), -1)
             elif tlv_type == 1010:
-                cv2.circle(frame, (x, y), 14, color, -1)
+                cv2.circle(frame, (x, y), 4, color, -1)
         if mode == "video_mode":
             if static:
                 cv2.circle(frame, (x, y), 4, washout(color), -1)
