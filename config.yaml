@@ -1,11 +1,18 @@
 Files:
-# video playback mode files:
+  frames_radar_data: ./data/radcam_log.json
   radar_data_file: ./data/Control_test1.json
   video_file: ./data/Controlled_test.avi
-  # frame playback mode files:
-  frames_radar_data: ./data/Test2_tlv_data_log.json
 
-# sensor parameters based on physical setup
+FrameModeDefaults:
+  TrackbarDefaults:
+    slider_xoffset: 219
+    slider_yoffset: 119
+    xy_trackbar_scale: 0.71
+  rad_cam_offset: 0
+  scalemm2px: 0.5
+  wait_ms: 33
+  playback_fps: 1
+
 SensorAngles:
   alpha: 47.5
   beta: 17.5
@@ -13,8 +20,6 @@ SensorOffsets:
   offsetx: 325
   offsety: 595
   offsetz: 850
-
-# video mode values
 VideoModeDefaults:
   TrackbarDefaults:
     slider_xoffset: 167
@@ -23,16 +28,5 @@ VideoModeDefaults:
   rad_cam_offset: 1500
   scalemm2px: 0.5
   wait_ms: 33
-
-# frame mode values
-FrameModeDefaults:
-  TrackbarDefaults:
-    slider_xoffset: 0
-    slider_yoffset: 0
-    xy_trackbar_scale: 1
-  rad_cam_offset: 0
-  scalemm2px: 0.5
-  wait_ms: 33
-
-playback_fps: 27
-remove_noise: True # if True, points outside of gate are not displayed
+  playback_fps: 27
+remove_noise: False

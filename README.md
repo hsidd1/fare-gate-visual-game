@@ -36,6 +36,8 @@ After running the visualization, trackbar values for gate area can be saved to Y
 Additional visualization tools for analysis purposes can be used
 #### Radar_visualization
 An animation of radar points in 3D scatter plot format (standard visual transforms to 2D perspective) with additional data.
+
+Additional requirements: Make sure you have installed [FFmpeg](https://ffmpeg.org/download.html).
 ```sh
 python tools/radar_visualization.py
 ```
@@ -44,6 +46,11 @@ Animation can be saved based on response to prompt at the end of animation.
 Generate single scatter plot of all radar points, color coded by TLV type.
 ```sh
 python tools/tlv_scatter.py
+```
+### Tests
+To run tests, run as module from main directory
+```sh
+python -m tests.<script-name>
 ```
 ## Next Steps
 - Merge with MQTT repository for live visualization
