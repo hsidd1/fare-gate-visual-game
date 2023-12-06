@@ -1,17 +1,31 @@
-import os
+"""Main Visualization Program for RTA2 Project. 
+
+Flags: -v, --video_mode: process video file (default)
+       -f, --frame_mode: process frames in directory
+"""
 import cv2
 import json
+import os
 import time
 from typing import Tuple
 import yaml
+import sys
 from radar_points import RadarData, StaticPoints
 from preprocess import *
 from radar_clustering import *
-
 # -------------- SET VISUALIZATION MODE --------------- #
 
-mode = "frame_mode"  # process live image frames
+# mode = "frame_mode"  # process live image frames
 # mode = "video_mode"  # process video file
+if len(sys.argv) > 1:
+    if sys.argv[1] == "-v" or sys.argv[1] == "--video_mode":
+        mode = "video_mode"
+    elif sys.argv[1] == "-f" or sys.argv[1] == "--frame_mode":
+        mode = "frame_mode"
+    else:
+        raise ValueError(f"Invalid argument: {sys.argv[1]}")
+else:
+    mode = "video_mode"
 
 # ------------------ DATA PREPROCESS ------------------ #
 # load configuration
