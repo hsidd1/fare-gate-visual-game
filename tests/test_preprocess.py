@@ -1,6 +1,6 @@
 import json
 import time
-from radar_points import * 
+from radar_points import *
 import preprocess
 
 # filenames
@@ -12,6 +12,8 @@ test2 = "data/Test2_tlv_data_log.json"
 visually view data per frame at specified interval for 
 different loading functions
 """
+
+
 def test_load(filename: str, func: str, interval=30) -> None:
     with open(filename, "r") as f:
         data = json.load(f)
@@ -36,9 +38,12 @@ def test_load(filename: str, func: str, interval=30) -> None:
         print(radar_data)
         print(f"ran {runs} frames")
 
+
 def main():
     # test_load(filename="data/Test2_tlv_data_log.json", func="load_data_tlv")
     # test_load(filename="data/Control_test1.json", func="load_data_sensorhost")
     test_load(filename="data/radcam_log.json", func="load_data_mqtt")
+
+
 if __name__ == "__main__":
     main()

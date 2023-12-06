@@ -54,10 +54,20 @@ class RadarFrame:
         for i, id in enumerate(self.sid):
             if id == sensor_id:
                 if self.isTLVframe:
-                    points_list.append((self.x[i], self.y[i], self.z[i], self.is_static[i], self.tlvs[i]))
+                    points_list.append(
+                        (
+                            self.x[i],
+                            self.y[i],
+                            self.z[i],
+                            self.is_static[i],
+                            self.tlvs[i],
+                        )
+                    )
                 else:
                     # 0 to indicate no TLV type
-                    points_list.append((self.x[i], self.y[i], self.z[i], self.is_static[i], 0))
+                    points_list.append(
+                        (self.x[i], self.y[i], self.z[i], self.is_static[i], 0)
+                    )
         return points_list
 
     # TODO: points_for_clustering not working as expected, each radar frame contains points for only 1 sensor at a
@@ -65,8 +75,10 @@ class RadarFrame:
     def points_for_clustering(self) -> list:
         points_list = []
         for i, status in enumerate(self.is_static):
-            if status == 0: # if point is not static
-                points_list.append((self.x[i], self.y[i], self.z[i])) # for actual z value
+            if status == 0:  # if point is not static
+                points_list.append(
+                    (self.x[i], self.y[i], self.z[i])
+                )  # for actual z value
                 # points_list.append((self.x[i], self.y[i], 0)) # flatten z value
                 print(self.sid)
         return points_list
@@ -148,8 +160,9 @@ class RadarData:
     def has_data(self) -> bool:
         return len(self.x) > 0
 
-    def transform_coord(self, s1_rotz, s1_rotx, s2_rotz, s2_rotx, 
-                        offsetx, offsety, offsetz):
+    def transform_coord(
+        self, s1_rotz, s1_rotx, s2_rotz, s2_rotx, offsetx, offsety, offsetz
+    ):
         """Apply coordinate transformation."""
         if self.isTransformed:
             print("Warning: RadarData already transformed. No action taken.")
@@ -207,7 +220,7 @@ class RadarData:
         del self.y[:frame_last_ts_index]
         del self.z[:frame_last_ts_index]
         del self.ts[:frame_last_ts_index]
-        if isTLVframe: 
+        if isTLVframe:
             del self.tlvs[:frame_last_ts_index]
         return RadarFrame(extracted_data, isTLVframe)
 

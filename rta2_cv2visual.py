@@ -13,6 +13,7 @@ import sys
 from radar_points import RadarData, StaticPoints
 from preprocess import *
 from radar_clustering import *
+
 # -------------- SET VISUALIZATION MODE --------------- #
 
 # mode = "frame_mode"  # process live image frames
@@ -49,7 +50,7 @@ if mode == "video_mode":
 if mode == "frame_mode":
     if not os.path.isfile(config["Files"]["frames_radar_data"]):
         raise FileNotFoundError(f"Frames directory does not exist.")
-    
+
     # load json data
     radar_data_file = config["Files"]["frames_radar_data"]
     with open(radar_data_file) as json_file:
@@ -60,7 +61,9 @@ if mode == "frame_mode":
     radar_data = load_data_mqtt(data)
     print(f"Radar data loaded.\n{radar_data}\n")
 
-TOTAL_DATA_S = (radar_data.ts[-1] - radar_data.ts[0])/1000 # total seconds of data, before removing points
+TOTAL_DATA_S = (
+    radar_data.ts[-1] - radar_data.ts[0]
+) / 1000  # total seconds of data, before removing points
 
 # Apply transformation
 alpha = config["SensorAngles"]["alpha"]
@@ -89,7 +92,9 @@ if mode == "video_mode":
     wait_ms = config["VideoModeDefaults"]["wait_ms"]
     slider_xoffset = config["VideoModeDefaults"]["TrackbarDefaults"]["slider_xoffset"]
     slider_yoffset = config["VideoModeDefaults"]["TrackbarDefaults"]["slider_yoffset"]
-    xy_trackbar_scale = config["VideoModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"]
+    xy_trackbar_scale = config["VideoModeDefaults"]["TrackbarDefaults"][
+        "xy_trackbar_scale"
+    ]
     playback_fps = config["VideoModeDefaults"]["playback_fps"]
 
 elif mode == "frame_mode":
@@ -98,7 +103,9 @@ elif mode == "frame_mode":
     wait_ms = config["FrameModeDefaults"]["wait_ms"]
     slider_xoffset = config["FrameModeDefaults"]["TrackbarDefaults"]["slider_xoffset"]
     slider_yoffset = config["FrameModeDefaults"]["TrackbarDefaults"]["slider_yoffset"]
-    xy_trackbar_scale = config["FrameModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"]
+    xy_trackbar_scale = config["FrameModeDefaults"]["TrackbarDefaults"][
+        "xy_trackbar_scale"
+    ]
     playback_fps = config["FrameModeDefaults"]["playback_fps"]
 
 print(f"{rad_cam_offset = }")
@@ -144,24 +151,21 @@ def scale_callback(*args):
 
 def draw_gate_topleft() -> Tuple[Tuple[int, int], Tuple[int, int]]:
     """draw gate at top left of window, with width and height of gate.
-    Scale to match gate location with trackbar 
+    Scale to match gate location with trackbar
     Returns valid display region start and end coordinates."""
     # initial coords at top left corner (0,0)
-    rect_start = (
-        (slider_xoffset),
-        (slider_yoffset)
-    )
+    rect_start = ((slider_xoffset), (slider_yoffset))
     # rect end initial coords are based on the physical width and height of the gate
     rect_end = (
         (int(offsetx * 2 * scalemm2px * xy_trackbar_scale) + slider_xoffset),
-        (int(offsety * 2 * scalemm2px * xy_trackbar_scale) + slider_yoffset)
+        (int(offsety * 2 * scalemm2px * xy_trackbar_scale) + slider_yoffset),
     )
     cv2.rectangle(frame, rect_start, rect_end, BLUE, 2)
     return rect_start, rect_end
 
 
 def remove_points_outside_gate(points, rect_start, rect_end) -> list:
-    """Remove points that are outside the gate area. 
+    """Remove points that are outside the gate area.
     Returns a list of points that are inside the gate area."""
     points_in_gate = []
     for coord in points:
@@ -194,8 +198,8 @@ def draw_radar_points(points, sensor_id) -> None:
         # xy modifications from trackbar controls
         x = int(x * xy_trackbar_scale) + slider_xoffset
         y = int(y * xy_trackbar_scale) + slider_yoffset
-        
-        if tlv_type != 0: # if tlv type is defined
+
+        if tlv_type != 0:  # if tlv type is defined
             if tlv_type == 1020:
                 cv2.circle(frame, (x, y), 4, washout(color), -1)
             elif tlv_type == 1010:
@@ -209,8 +213,8 @@ def draw_radar_points(points, sensor_id) -> None:
 
 def draw_clustered_points(processed_centroids, color=RED) -> None:
     for cluster in processed_centroids:
-        x = int((int(cluster['x'] + offsetx) * scalemm2px))
-        y = int((int(-cluster['y'] + offsety) * scalemm2px))  # y axis is flipped
+        x = int((int(cluster["x"] + offsetx) * scalemm2px))
+        y = int((int(-cluster["y"] + offsety) * scalemm2px))  # y axis is flipped
         # z = int(coord[2] * scalemm2px)  # z is not used
         # static = coord[3]
 
@@ -223,91 +227,111 @@ def draw_clustered_points(processed_centroids, color=RED) -> None:
 def draw_bbox(centroids, cluster_point_cloud) -> None:
     for i in enumerate(centroids):
         x1, y1, x2, y2 = cluster_bbox(cluster_point_cloud, i[0])
-        # convert mm to px 
-        x1, y1, x2, y2 = int(x1 + offsetx) * scalemm2px, int(-y1 + offsety) * scalemm2px, int(x2 + offsetx) * scalemm2px, int(-y2 + offsety) * scalemm2px
+        # convert mm to px
+        x1, y1, x2, y2 = (
+            int(x1 + offsetx) * scalemm2px,
+            int(-y1 + offsety) * scalemm2px,
+            int(x2 + offsetx) * scalemm2px,
+            int(-y2 + offsety) * scalemm2px,
+        )
         # modify based on trackbar
-        x1, y1, x2, y2 = int(x1 * xy_trackbar_scale) + slider_xoffset, int(y1 * xy_trackbar_scale) + slider_yoffset, int(x2 * xy_trackbar_scale) + slider_xoffset, int(y2 * xy_trackbar_scale) + slider_yoffset
+        x1, y1, x2, y2 = (
+            int(x1 * xy_trackbar_scale) + slider_xoffset,
+            int(y1 * xy_trackbar_scale) + slider_yoffset,
+            int(x2 * xy_trackbar_scale) + slider_xoffset,
+            int(y2 * xy_trackbar_scale) + slider_yoffset,
+        )
         object_size, object_height = obj_height(cluster_point_cloud, i[0])
         rect = cv2.rectangle(frame, (x1, y1), (x2, y2), ORANGE, 1)
-        size, _ = cv2.getTextSize(f"{object_height:.1f} mm", cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+        size, _ = cv2.getTextSize(
+            f"{object_height:.1f} mm", cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
+        )
         text_width, text_height = size
-        cv2.putText(rect, f"{object_height:.1f} mm", (x1, y1 - text_height - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, ORANGE, 2)
+        cv2.putText(
+            rect,
+            f"{object_height:.1f} mm",
+            (x1, y1 - text_height - 80),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            ORANGE,
+            2,
+        )
+
 
 def display_frame_info(radar_frame: RadarData, width, height) -> None:
     """Display video info on frame. width and height are the dimensions of the window."""
     # Time remaining
-    cv2.putText(frame, 
-                f"{0 if not radar_data.ts else (radar_data.ts[-1] - radar_data.ts[0])/1000:.2f} s remaining", 
-                (10, height - 20), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
-                )
+    cv2.putText(
+        frame,
+        f"{0 if not radar_data.ts else (radar_data.ts[-1] - radar_data.ts[0])/1000:.2f} s remaining",
+        (10, height - 20),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 0, 0),
+        2,
+    )
     # Number of points in frame
-    cv2.putText(frame, 
-                f"nPoints (frame): {len(radar_frame.x)}", 
-                (10, height - 40), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
-                )
+    cv2.putText(
+        frame,
+        f"nPoints (frame): {len(radar_frame.x)}",
+        (10, height - 40),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 0, 0),
+        2,
+    )
     # Number of points in gate
     cv2.putText(
-            frame, 
-            f"Points in gate -- s1:{len(s1_display_points)} s2: {len(s2_display_points)}", 
-            (10, height - 60), 
-            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
-            )
+        frame,
+        f"Points in gate -- s1:{len(s1_display_points)} s2: {len(s2_display_points)}",
+        (10, height - 60),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 0, 0),
+        2,
+    )
     # Video config info, time elapsed, total time of data
     cv2.putText(
-        frame, 
-        f"Replay 1.0x, {playback_fps} fps Time Elapsed (s): {radar_data._RadarData__time_elapsed/1000:.2f} / {TOTAL_DATA_S:.2f}", 
-        (10, height - 100), 
-        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
-        )
+        frame,
+        f"Replay 1.0x, {playback_fps} fps Time Elapsed (s): {radar_data._RadarData__time_elapsed/1000:.2f} / {TOTAL_DATA_S:.2f}",
+        (10, height - 100),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 0, 0),
+        2,
+    )
     # Legend: green: s1, yellow: s2, orange: bbox, washed: static. With colour coded text, top left
+    cv2.putText(frame, "Legend: ", (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    cv2.putText(frame, "s1", (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, GREEN, 2)
+    cv2.putText(frame, "s2", (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, YELLOW, 2)
     cv2.putText(
-        frame, 
-        "Legend: ", 
-        (0, 10), 
-        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
-        )
+        frame, "Bounding box", (0, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, ORANGE, 2
+    )
     cv2.putText(
-        frame,
-        "s1",
-        (0, 30),
-        cv2.FONT_HERSHEY_SIMPLEX, 0.5, GREEN, 2
-        ) 
-    cv2.putText(
-        frame,
-        "s2",
-        (0, 50),
-        cv2.FONT_HERSHEY_SIMPLEX, 0.5, YELLOW, 2
-        )
-    cv2.putText(
-        frame,
-        "Bounding box",
-        (0, 70),
-        cv2.FONT_HERSHEY_SIMPLEX, 0.5, ORANGE, 2
-        )
-    cv2.putText(
-        frame,
-        "Static",
-        (0, 90),
-        cv2.FONT_HERSHEY_SIMPLEX, 0.5, washout(GREEN), 2
-        )
-        
+        frame, "Static", (0, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, washout(GREEN), 2
+    )
+
+
 def display_control_info() -> None:
     cv2.putText(
-        frame, 
-        "Controls - 'q': quit  'p': pause", 
-        (width-175, 20), 
-        cv2.FONT_HERSHEY_SIMPLEX, 
-        0.35, (0, 0, 150), 1
-        )
+        frame,
+        "Controls - 'q': quit  'p': pause",
+        (width - 175, 20),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.35,
+        (0, 0, 150),
+        1,
+    )
     cv2.putText(
         frame,
         "scale/offset gate region with trackbar",
-        (width-217, 40),
+        (width - 217, 40),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.35, (0, 0, 150), 1
-        )
+        0.35,
+        (0, 0, 150),
+        1,
+    )
+
 
 # ------------------ VISUALIZATION ------------------ #
 
@@ -351,7 +375,9 @@ print(f"Radar is set to be ahead of video by {rad_cam_offset:.1f}ms.")
 all_increments = 0
 ts_start = radar_data.ts[0]  # initial timestamp of radar points at start of program
 if round(rad_cam_offset) > 0:
-    print("rad_cam_offset is set positive, removing radar points while waiting for video.")
+    print(
+        "rad_cam_offset is set positive, removing radar points while waiting for video."
+    )
 while round(rad_cam_offset) > 0:
     all_increments += incr
     while radar_data.ts[0] < ts_start + all_increments:
@@ -373,11 +399,11 @@ if round(rad_cam_offset) < 0:
     print("rad_cam_offset is set negative, waiting radar points while playing video.")
 
     if mode == "video_mode":
-            while round(rad_cam_offset) < 0:
-                rad_cam_offset += incr
-                ret, frame = cap.read()
-                if not ret:
-                    break
+        while round(rad_cam_offset) < 0:
+            rad_cam_offset += incr
+            ret, frame = cap.read()
+            if not ret:
+                break
 
     elif mode == "frame_mode":
         frame_timestamps = [int(ts[:-4]) for ts in frame_files]
@@ -408,14 +434,14 @@ while True:
             frame = cv2.imread(f"data/frames/{frame_files[curr_frame]}")
             curr_frame += 1
             # account for interval between frame timestamps relative to radar data timestamp intervals
-            time.sleep(incr/1000)
+            time.sleep(incr / 1000)
         else:
-            break # end of frames
+            break  # end of frames
     height, width = frame.shape[:2]
     frame = cv2.resize(frame, (round(width), round(height)))  # reduce frame size
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
     height, width = frame.shape[:2]
-    
+
     # draw gate area and get gate area coordinates
     gate_tl, gate_br = draw_gate_topleft()
 
@@ -446,8 +472,12 @@ while True:
 
     # remove points that are out of gate area, if configured
     if config["remove_noise"]:
-        s1_display_points = remove_points_outside_gate(s1_display_points, gate_tl, gate_br)
-        s2_display_points = remove_points_outside_gate(s2_display_points, gate_tl, gate_br)
+        s1_display_points = remove_points_outside_gate(
+            s1_display_points, gate_tl, gate_br
+        )
+        s2_display_points = remove_points_outside_gate(
+            s2_display_points, gate_tl, gate_br
+        )
 
     # retain previous frame if no new points
     if not s1_display_points:
@@ -460,16 +490,30 @@ while True:
         s2_display_points_prev = s2_display_points
 
     # get all non-static points and cluster
-    s1_s2_combined = [values[:-1] for values in s1_display_points + s2_display_points if values[-1] == 0]
+    s1_s2_combined = [
+        values[:-1]
+        for values in s1_display_points + s2_display_points
+        if values[-1] == 0
+    ]
     if len(s1_s2_combined) > 1:
-        processor = ClusterProcessor(eps=250, min_samples=4)  # default: eps=400, min_samples=5 --> eps is in mm
-        centroids, cluster_point_cloud = processor.cluster_points(s1_s2_combined)  # get the centroids of each
+        processor = ClusterProcessor(
+            eps=250, min_samples=4
+        )  # default: eps=400, min_samples=5 --> eps is in mm
+        centroids, cluster_point_cloud = processor.cluster_points(
+            s1_s2_combined
+        )  # get the centroids of each
         # cluster and their associated point cloud
-        draw_clustered_points(centroids)  # may not be in the abs center of bbox --> "center of mass", not area
+        draw_clustered_points(
+            centroids
+        )  # may not be in the abs center of bbox --> "center of mass", not area
         # centroid.
-        draw_clustered_points(cluster_point_cloud, color=BLUE)  # highlight the points that belong to the detected
+        draw_clustered_points(
+            cluster_point_cloud, color=BLUE
+        )  # highlight the points that belong to the detected
         # obj
-        draw_bbox(centroids, cluster_point_cloud)  # draw the bounding box of each cluster
+        draw_bbox(
+            centroids, cluster_point_cloud
+        )  # draw the bounding box of each cluster
 
     # draw points on frame
     if s1_display_points:
@@ -501,13 +545,25 @@ def yaml_update():
         choice = input("Update final trackbar values in yaml? (y/n): ").lower()
         if choice == "y":
             if mode == "video_mode":
-                config["VideoModeDefaults"]["TrackbarDefaults"]["slider_xoffset"] = slider_xoffset
-                config["VideoModeDefaults"]["TrackbarDefaults"]["slider_yoffset"] = slider_yoffset
-                config["VideoModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"] = xy_trackbar_scale
+                config["VideoModeDefaults"]["TrackbarDefaults"][
+                    "slider_xoffset"
+                ] = slider_xoffset
+                config["VideoModeDefaults"]["TrackbarDefaults"][
+                    "slider_yoffset"
+                ] = slider_yoffset
+                config["VideoModeDefaults"]["TrackbarDefaults"][
+                    "xy_trackbar_scale"
+                ] = xy_trackbar_scale
             elif mode == "frame_mode":
-                config["FrameModeDefaults"]["TrackbarDefaults"]["slider_xoffset"] = slider_xoffset
-                config["FrameModeDefaults"]["TrackbarDefaults"]["slider_yoffset"] = slider_yoffset
-                config["FrameModeDefaults"]["TrackbarDefaults"]["xy_trackbar_scale"] = xy_trackbar_scale
+                config["FrameModeDefaults"]["TrackbarDefaults"][
+                    "slider_xoffset"
+                ] = slider_xoffset
+                config["FrameModeDefaults"]["TrackbarDefaults"][
+                    "slider_yoffset"
+                ] = slider_yoffset
+                config["FrameModeDefaults"]["TrackbarDefaults"][
+                    "xy_trackbar_scale"
+                ] = xy_trackbar_scale
 
             with open("config.yaml", "w") as file:
                 yaml.dump(config, file)
@@ -518,5 +574,6 @@ def yaml_update():
             break
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
+
 
 yaml_update()

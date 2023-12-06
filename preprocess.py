@@ -3,6 +3,7 @@ from radar_points import RadarData
 import json
 import datetime
 
+
 # for entry sensor
 def calc_rot_matrix(alpha, beta):
     """alpha is the angle along z axis - yaw
@@ -53,6 +54,7 @@ def load_data_sensorhost(data: json) -> RadarData:
             radar_points.append(s)
     return RadarData(radar_points)
 
+
 def load_data_tlv(data: json) -> RadarData:
     # load data in radar-only TI output format (Test2_tlv_data_log.json)
     radar_points = []
@@ -69,11 +71,16 @@ def load_data_tlv(data: json) -> RadarData:
             time_obj = datetime.datetime.strptime(time_str, "%H:%M:%S.%f")
 
             # convert datetime to milliseconds
-            milliseconds = int(time_obj.hour * 3600 + time_obj.minute * 60 + time_obj.second) * 1000 + time_obj.microsecond // 1000
+            milliseconds = (
+                int(time_obj.hour * 3600 + time_obj.minute * 60 + time_obj.second)
+                * 1000
+                + time_obj.microsecond // 1000
+            )
             s["timestamp"] = milliseconds
             radar_points.append(s)
     # return data object specifying format for visualization
     return RadarData(radar_points, isTLVformat=True)
+
 
 def load_data_mqtt(data: json) -> RadarData:
     # load data in mqtt save data format (radcamlog.json)
@@ -98,7 +105,9 @@ def load_data_mqtt(data: json) -> RadarData:
                 # s["timestamp"] = milliseconds
 
                 # alternatively, use timestamp from radar
-                s["timestamp"] = int(item["radar_payload"]["time"].replace(":", "").replace(".", "")[:-3])
-                
+                s["timestamp"] = int(
+                    item["radar_payload"]["time"].replace(":", "").replace(".", "")[:-3]
+                )
+
                 radar_points.append(s)
     return RadarData(radar_points, isTLVformat=True)
